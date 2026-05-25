@@ -34,6 +34,11 @@ export function FinalizadoOpCard({ theme, op }: Props) {
       <Text style={[styles.title, { color: theme.text }]} numberOfLines={2}>
         {op.produto_nome}
       </Text>
+      {op.produto_sku?.trim() ? (
+        <Text style={[styles.meta, { color: theme.textSecondary }]} numberOfLines={1}>
+          SKU: {op.produto_sku.trim()}
+        </Text>
+      ) : null}
       {op.empresa_nome ? (
         <Text style={[styles.meta, { color: theme.textSecondary }]} numberOfLines={1}>
           {op.empresa_nome}

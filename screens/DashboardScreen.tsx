@@ -1,8 +1,8 @@
+import { DashboardFilterBar } from '../components/DashboardFilterBar';
 import { FichaTecnicaModal } from '../components/FichaTecnicaModal';
 import { FinalizadoOpCard } from '../components/FinalizadoOpCard';
 import { FinalizarOpModal } from '../components/FinalizarOpModal';
 import { OpCard } from '../components/OpCard';
-import { OpFiltersModal } from '../components/OpFiltersModal';
 import { ThemeToggleButton } from '../components/ThemeToggleButton';
 import { useTheme } from '../contexts/ThemeContext';
 import { enrichOpsComPendenteCorreto } from '../lib/enrichOpsPendente';
@@ -10,10 +10,10 @@ import { displayElapsedSeconds } from '../lib/displayOpTimer';
 import { loadFinalizadosFaccionista } from '../lib/loadFinalizados';
 import {
   collectEmpresas,
-  countActiveFilters,
   defaultOpFilters,
   filterAndSortFinalizados,
   filterAndSortOps,
+  hasActiveFilters,
   type OpFilters,
 } from '../lib/opFilters';
 import type {
@@ -54,7 +54,6 @@ export function DashboardScreen({ session, onExit }: Props) {
   const [ops, setOps] = useState<OpRow[]>(session.initialOps);
   const [finalizados, setFinalizados] = useState<OpFinalizadoRow[]>([]);
   const [filters, setFilters] = useState<OpFilters>(defaultOpFilters);
-  const [filtersOpen, setFiltersOpen] = useState(false);
   const [refreshing, setRefreshing] = useState(false);
   const [err, setErr] = useState<string | null>(null);
   const [, setTick] = useState(0);
@@ -113,7 +112,7 @@ export function DashboardScreen({ session, onExit }: Props) {
   }, []);
 
   const empresas = useMemo(() => collectEmpresas(ops, finalizados), [ops, finalizados]);
-  const activeFiltersCount = countActiveFilters(filters);
+  const filtersActive = hasActiveFilters(filters);
 
   const activeOps = useMemo(() => filterAndSortOps(ops, filters), [ops, filters]);
   const finalizadosFiltrados = useMemo(
@@ -188,15 +187,15 @@ export function DashboardScreen({ session, onExit }: Props) {
   const emptyPendenteMsg =
     ops.length === 0
       ? 'Nenhum item pendente.'
-      : activeFiltersCount > 0
-        ? 'Nenhuma OP corresponde aos filtros.'
+      : filtersActive
+        ? 'Nenhuma OP corresponde à busca.'
         : 'Nenhum item pendente.';
 
   const emptyFinMsg =
     finalizados.length === 0
       ? 'Nenhum item finalizado ainda.'
-      : activeFiltersCount > 0
-        ? 'Nenhuma OP finalizada corresponde aos filtros.'
+      : filtersActive
+        ? 'Nenhuma OP finalizada corresponde à busca.'
         : 'Nenhum item finalizado ainda.';
 
   return (
@@ -209,18 +208,17 @@ export function DashboardScreen({ session, onExit }: Props) {
             : ''}
         </Text>
         <ThemeToggleButton theme={theme} isDark={isDark} onToggle={toggleTheme} />
-        <Pressable onPress={() => setFiltersOpen(true)} style={styles.filtrosBtn}>
-          <Text style={{ color: theme.primary, fontWeight: '700' }}>Filtros</Text>
-          {activeFiltersCount > 0 ? (
-            <View style={[styles.badge, { backgroundColor: theme.primary }]}>
-              <Text style={[styles.badgeText, { color: theme.textOnPrimary }]}>{activeFiltersCount}</Text>
-            </View>
-          ) : null}
-        </Pressable>
         <Pressable onPress={onExit} style={styles.sairBtn}>
           <Text style={{ color: theme.primary, fontWeight: '700' }}>Sair</Text>
         </Pressable>
       </View>
+
+      <DashboardFilterBar
+        theme={theme}
+        empresas={empresas}
+        filters={filters}
+        onChange={setFilters}
+      />
 
       {err ? (
         <Text style={[styles.bannerErr, { color: theme.error, backgroundColor: theme.surface }]}>
@@ -234,16 +232,13 @@ export function DashboardScreen({ session, onExit }: Props) {
           <RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={theme.primary} />
         }
       >
-        {activeFiltersCount > 0 ? (
+        {filtersActive ? (
           <Text style={[styles.filterHint, { color: theme.primary }]}>
-            Filtros ativos · {activeOps.length} pendente(s) · {finalizadosFiltrados.length} finalizada(s)
+            Filtro ativo · {activeOps.length} pendente(s) · {finalizadosFiltrados.length} finalizada(s)
           </Text>
         ) : null}
 
         <Text style={[styles.section, { color: theme.textSecondary }]}>Em produção (pendente)</Text>
-        <Text style={[styles.hint, { color: theme.textMuted }]}>
-          Só o que ainda falta finalizar. Use Filtros para buscar OP, empresa ou data de entrega.
-        </Text>
         {activeOps.length === 0 ? (
           <Text style={[styles.empty, { color: theme.textMuted }]}>{emptyPendenteMsg}</Text>
         ) : (
@@ -264,24 +259,12 @@ export function DashboardScreen({ session, onExit }: Props) {
         <Text style={[styles.section, { color: theme.textSecondary, marginTop: 24 }]}>
           Finalizado (por você)
         </Text>
-        <Text style={[styles.hint, { color: theme.textMuted }]}>
-          Tudo que você já registrou — inclusive finalização parcial.
-        </Text>
         {finalizadosFiltrados.length === 0 ? (
           <Text style={[styles.empty, { color: theme.textMuted }]}>{emptyFinMsg}</Text>
         ) : (
           finalizadosFiltrados.map((op) => <FinalizadoOpCard key={op.op_id} theme={theme} op={op} />)
         )}
       </ScrollView>
-
-      <OpFiltersModal
-        theme={theme}
-        visible={filtersOpen}
-        empresas={empresas}
-        initial={filters}
-        onClose={() => setFiltersOpen(false)}
-        onApply={setFilters}
-      />
 
       <FinalizarOpModal
         theme={theme}
@@ -319,28 +302,10 @@ const styles = StyleSheet.create({
     fontSize: 12,
     fontWeight: '600',
   },
-  filtrosBtn: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    paddingVertical: 4,
-    paddingHorizontal: 4,
-    gap: 4,
-    flexShrink: 0,
-  },
-  badge: {
-    minWidth: 18,
-    height: 18,
-    borderRadius: 9,
-    alignItems: 'center',
-    justifyContent: 'center',
-    paddingHorizontal: 4,
-  },
-  badgeText: { fontSize: 11, fontWeight: '800' },
   sairBtn: { paddingVertical: 4, paddingHorizontal: 4, flexShrink: 0 },
   bannerErr: { padding: 12, fontSize: 14 },
   scroll: { padding: 16, paddingBottom: 32 },
   filterHint: { fontSize: 13, fontWeight: '600', marginBottom: 12 },
   section: { fontSize: 13, fontWeight: '700', textTransform: 'uppercase', marginBottom: 8, letterSpacing: 0.5 },
-  hint: { fontSize: 12, marginBottom: 12, lineHeight: 18 },
   empty: { fontSize: 14, marginBottom: 8 },
 });

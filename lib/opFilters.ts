@@ -2,20 +2,15 @@ import type { OpFinalizadoRow, OpRow } from '../types/api';
 
 export type EntregaSortOrder = 'asc' | 'desc';
 
-/** asc = entrega mais próxima primeiro; desc = mais distante primeiro */
 export type OpFilters = {
-  numeroOpSearch: string;
   empresaKey: string | null;
-  dataEntregaDe: string;
-  dataEntregaAte: string;
+  searchQuery: string;
   sortEntrega: EntregaSortOrder;
 };
 
 export const defaultOpFilters: OpFilters = {
-  numeroOpSearch: '',
   empresaKey: null,
-  dataEntregaDe: '',
-  dataEntregaAte: '',
+  searchQuery: '',
   sortEntrega: 'asc',
 };
 
@@ -48,30 +43,6 @@ export function parseEntregaMs(isoOrText: string | undefined): number {
   return Number.isNaN(t) ? Number.POSITIVE_INFINITY : t;
 }
 
-/** Aceita DD/MM/AAAA ou AAAA-MM-DD */
-export function parseDateInput(input: string): Date | null {
-  const t = input.trim();
-  if (!t) return null;
-  if (/^\d{4}-\d{2}-\d{2}$/.test(t)) {
-    const d = new Date(`${t}T12:00:00`);
-    return Number.isNaN(d.getTime()) ? null : d;
-  }
-  const m = t.match(/^(\d{1,2})\/(\d{1,2})\/(\d{4})$/);
-  if (m) {
-    const d = new Date(Number(m[3]), Number(m[2]) - 1, Number(m[1]), 12, 0, 0, 0);
-    return Number.isNaN(d.getTime()) ? null : d;
-  }
-  return null;
-}
-
-function startOfDay(d: Date): number {
-  return new Date(d.getFullYear(), d.getMonth(), d.getDate()).getTime();
-}
-
-function endOfDay(d: Date): number {
-  return new Date(d.getFullYear(), d.getMonth(), d.getDate(), 23, 59, 59, 999).getTime();
-}
-
 function matchesEmpresa(
   op: { empresa_id?: string; empresa_nome?: string },
   empresaKey: string | null,
@@ -80,41 +51,74 @@ function matchesEmpresa(
   return empresaKeyFromOp(op) === empresaKey;
 }
 
-function matchesNumeroOp(numeroOp: number, search: string): boolean {
-  const q = search.trim();
+function normalizeSearch(q: string): string {
+  return q.trim().toLowerCase();
+}
+
+function digitsOnly(q: string): string {
+  return q.replace(/\D/g, '');
+}
+
+function opSearchHaystack(op: OpRow): string {
+  const parts: string[] = [
+    op.produto_nome ?? '',
+    op.produto_sku ?? '',
+    op.empresa_nome ?? '',
+    op.observacao ?? '',
+    op.fase_nome ?? '',
+    String(op.numero_op),
+  ];
+  for (const it of op.itens ?? []) {
+    parts.push(it.cor ?? '', it.tamanho ?? '', it.parte ?? '');
+  }
+  return parts.join(' ').toLowerCase();
+}
+
+function finalizadoSearchHaystack(op: OpFinalizadoRow): string {
+  const parts: string[] = [
+    op.produto_nome ?? '',
+    op.produto_sku ?? '',
+    op.empresa_nome ?? '',
+    String(op.numero_op),
+  ];
+  for (const it of op.itens ?? []) {
+    parts.push(it.cor ?? '', it.tamanho ?? '', it.parte ?? '');
+  }
+  return parts.join(' ').toLowerCase();
+}
+
+export function matchesSearchOp(op: OpRow, searchQuery: string): boolean {
+  const q = normalizeSearch(searchQuery);
   if (!q) return true;
-  return String(numeroOp).includes(q.replace(/\D/g, '') || q);
+  const digits = digitsOnly(q);
+  if (digits && String(op.numero_op).includes(digits)) return true;
+  return opSearchHaystack(op).includes(q);
 }
 
-function matchesDataEntrega(dataEntrega: string | undefined, de: string, ate: string): boolean {
-  const ms = parseEntregaMs(dataEntrega);
-  if (ms === Number.POSITIVE_INFINITY) return true;
-
-  const dDe = parseDateInput(de);
-  if (dDe && ms < startOfDay(dDe)) return false;
-
-  const dAte = parseDateInput(ate);
-  if (dAte && ms > endOfDay(dAte)) return false;
-
-  return true;
+export function matchesSearchFinalizado(op: OpFinalizadoRow, searchQuery: string): boolean {
+  const q = normalizeSearch(searchQuery);
+  if (!q) return true;
+  const digits = digitsOnly(q);
+  if (digits && String(op.numero_op).includes(digits)) return true;
+  return finalizadoSearchHaystack(op).includes(q);
 }
 
-export function countActiveFilters(f: OpFilters): number {
-  let n = 0;
-  if (f.numeroOpSearch.trim()) n++;
-  if (f.empresaKey) n++;
-  if (f.dataEntregaDe.trim()) n++;
-  if (f.dataEntregaAte.trim()) n++;
-  if (f.sortEntrega !== defaultOpFilters.sortEntrega) n++;
-  return n;
+export function hasActiveFilters(f: OpFilters): boolean {
+  return Boolean(f.empresaKey) || Boolean(f.searchQuery.trim());
+}
+
+export function isOpEmProducao(op: { status?: string }): boolean {
+  return String(op.status ?? '')
+    .trim()
+    .toUpperCase() === 'EM_PRODUCAO';
 }
 
 export function filterAndSortOps(ops: OpRow[], f: OpFilters): OpRow[] {
   const list = ops.filter(
     (op) =>
-      matchesNumeroOp(op.numero_op, f.numeroOpSearch) &&
+      isOpEmProducao(op) &&
       matchesEmpresa(op, f.empresaKey) &&
-      matchesDataEntrega(op.data_entrega, f.dataEntregaDe, f.dataEntregaAte),
+      matchesSearchOp(op, f.searchQuery),
   );
   return sortByEntrega(list, f.sortEntrega, (o) => o.data_entrega);
 }
@@ -124,9 +128,7 @@ export function filterAndSortFinalizados(
   f: OpFilters,
 ): OpFinalizadoRow[] {
   const list = rows.filter(
-    (op) =>
-      matchesNumeroOp(op.numero_op, f.numeroOpSearch) &&
-      matchesEmpresa(op, f.empresaKey),
+    (op) => matchesEmpresa(op, f.empresaKey) && matchesSearchFinalizado(op, f.searchQuery),
   );
   return sortByEntrega(list, f.sortEntrega, (o) => o.ultimo_finalizado_em);
 }

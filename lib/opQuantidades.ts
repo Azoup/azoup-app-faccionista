@@ -37,6 +37,17 @@ export function itemTemPendente(it: OpItemRow, qtdFinalizadaExterna?: number): b
   return quantidadePendente(it, qtdFinalizadaExterna) > 0.0001;
 }
 
+/** Inclui no modal itens com saldo pendente ou linha com quantidade total 0. */
+export function itemIncluirNoModalFinalizar(it: OpItemRow, qtdFinalizadaExterna?: number): boolean {
+  if (quantidadeTotalItem(it) <= 0.0001) return true;
+  return itemTemPendente(it, qtdFinalizadaExterna);
+}
+
+export function opPodeSerFinalizada(itens: OpItemRow[]): boolean {
+  if (itens.length === 0) return false;
+  return itens.some((it) => itemTemPendente(it)) || itens.every((it) => quantidadeTotalItem(it) <= 0.0001);
+}
+
 /** Máximo digitável no modal de finalizar. */
 export function quantidadeMaxInput(it: OpItemRow, qtdFinalizadaExterna?: number): number {
   return quantidadePendente(it, qtdFinalizadaExterna);
@@ -44,6 +55,10 @@ export function quantidadeMaxInput(it: OpItemRow, qtdFinalizadaExterna?: number)
 
 /** Aceita só dígitos e um separador decimal (, ou .); limita ao máximo. */
 export function filtrarEntradaQuantidade(text: string, max: number): string {
+  if (max <= 0.0001) {
+    if (text === '' || text === '0') return '0';
+    return '0';
+  }
   if (text === '') return '';
   let s = text.replace(/[^\d,.]/g, '');
   const sepIdx = s.search(/[,.]/);

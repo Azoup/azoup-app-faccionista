@@ -1,10 +1,12 @@
 import {
+  STATUS_FACCIONISTA,
   labelStatusFaccionista,
   normalizeStatusFaccionista,
 } from '../constants/statusFaccionista';
 import { parseQuantidade, quantidadePendente } from '../lib/opQuantidades';
 import type { Theme } from '../constants/theme';
 import type { OpRow } from '../types/api';
+import { Ionicons } from '@expo/vector-icons';
 import { Pressable, StyleSheet, Text, View } from 'react-native';
 
 function formatElapsed(ms: number): string {
@@ -57,26 +59,40 @@ export function OpCard({
   const produtoId = op.produto_id ?? null;
   const canFicha = Boolean(produtoId) && typeof onOpenFicha === 'function';
   const statusFacc = normalizeStatusFaccionista(op.status_faccionista);
+  const erpStatus = String(op.status ?? '')
+    .trim()
+    .toUpperCase();
+  const showErpStatus = erpStatus.length > 0 && erpStatus !== 'EM_PRODUCAO';
+  const showStatusFacc = statusFacc !== STATUS_FACCIONISTA.EM_PRODUCAO;
 
   return (
     <View style={[styles.card, { backgroundColor: theme.surface, borderColor: theme.border }]}>
       <View style={styles.headerRow}>
         <Text style={[styles.numero, { color: theme.primary }]}>OP {op.numero_op}</Text>
-        <Text style={[styles.status, { color: theme.textMuted }]}>{op.status}</Text>
+        {showErpStatus ? (
+          <Text style={[styles.status, { color: theme.textMuted }]}>{op.status}</Text>
+        ) : null}
       </View>
-      <Text style={[styles.statusFacc, { color: theme.primary }]}>
-        {labelStatusFaccionista(statusFacc)}
-      </Text>
+      {showStatusFacc ? (
+        <Text style={[styles.statusFacc, { color: theme.primary }]}>
+          {labelStatusFaccionista(statusFacc)}
+        </Text>
+      ) : null}
       <Text style={[styles.title, { color: theme.text }]} numberOfLines={2}>
         {op.produto_nome}
       </Text>
+      {op.produto_sku?.trim() ? (
+        <Text style={[styles.meta, { color: theme.textSecondary }]} numberOfLines={1}>
+          SKU: {op.produto_sku.trim()}
+        </Text>
+      ) : null}
       {op.empresa_nome ? (
         <Text style={[styles.meta, { color: theme.textSecondary }]} numberOfLines={1}>
           {op.empresa_nome}
         </Text>
       ) : null}
       <Text style={[styles.meta, { color: theme.textSecondary }]}>
-        Entrega / ref.: {formatEntregaLabel(op.data_entrega)}
+        Data de envio: {formatEntregaLabel(op.data_entrega)}
       </Text>
       {op.fase_nome ? (
         <Text style={[styles.fase, { color: theme.textMuted }]} numberOfLines={1}>
@@ -141,15 +157,19 @@ export function OpCard({
         <View style={styles.actions}>
           <Pressable
             onPress={onToggleTimer}
+            accessibilityLabel={running ? 'Pausar cronômetro' : 'Iniciar cronômetro'}
+            accessibilityRole="button"
             style={({ pressed }) => [
               styles.btnPlay,
               { backgroundColor: running ? theme.surfaceVariant : theme.primary },
               pressed && styles.pressed,
             ]}
           >
-            <Text style={{ color: running ? theme.text : theme.textOnPrimary, fontWeight: '700' }}>
-              {running ? 'Pausar' : 'Play'}
-            </Text>
+            <Ionicons
+              name={running ? 'pause' : 'play'}
+              size={24}
+              color={running ? theme.text : theme.textOnPrimary}
+            />
           </Pressable>
           <Pressable
             onPress={onRequestFinish}
@@ -221,9 +241,11 @@ const styles = StyleSheet.create({
   timer: { fontVariant: ['tabular-nums'], fontSize: 22, fontWeight: '700' },
   actions: { flexDirection: 'row', gap: 10, flexShrink: 1, flexWrap: 'wrap', justifyContent: 'flex-end' },
   btnPlay: {
-    paddingVertical: 10,
-    paddingHorizontal: 16,
+    width: 44,
+    height: 44,
     borderRadius: 10,
+    alignItems: 'center',
+    justifyContent: 'center',
   },
   btnDone: {
     paddingVertical: 10,

@@ -3,7 +3,7 @@ import {
   filtrarEntradaQuantidade,
   formatQuantidadeInput,
   formatQuantidadeLabel,
-  itemTemPendente,
+  opPodeSerFinalizada,
   parseQuantidade,
   quantidadeMaxInput,
   quantidadePendente,
@@ -38,9 +38,14 @@ type Props = {
   onSuccess: () => void | Promise<void>;
 };
 
-function parseQtyInput(raw: string): number | null {
-  const n = parseFloat(raw.trim().replace(',', '.'));
-  if (Number.isNaN(n) || n <= 0) return null;
+function parseQtyInput(raw: string, maxQtd: number): number | null {
+  const trimmed = raw.trim();
+  if (trimmed === '') {
+    if (maxQtd <= 0.0001) return 0;
+    return null;
+  }
+  const n = parseFloat(trimmed.replace(',', '.'));
+  if (Number.isNaN(n) || n < 0) return null;
   return n;
 }
 
@@ -72,7 +77,8 @@ function initQtyMap(list: OpItemRowUi[]): Record<string, string> {
   const init: Record<string, string> = {};
   list.forEach((it, idx) => {
     const key = it._rowKey ?? itemRowKey(it, idx);
-    init[key] = formatQuantidadeInput(quantidadeMaxInput(it));
+    const max = quantidadeMaxInput(it);
+    init[key] = max <= 0.0001 ? '0' : formatQuantidadeInput(max);
   });
   return init;
 }
@@ -111,8 +117,8 @@ export function FinalizarOpModal({ theme, visible, op, onClose, onSuccess }: Pro
         if (!cancelled) {
           setItens(normalized);
           setQtyByItem(initQtyMap(normalized));
-          if (normalized.length === 0) {
-            setErr(warn ?? 'Nenhum item pendente nesta OP.');
+          if (!opPodeSerFinalizada(normalized)) {
+            setErr(warn ?? 'Nenhum item para finalizar nesta OP.');
           } else if (normalized.some((it) => !normalizeOpItemId(it))) {
             setErr(
               'Itens sem ID no servidor. Rode sql/08 e sql/01 no Supabase, puxe para atualizar a lista e tente de novo.',
@@ -144,9 +150,9 @@ export function FinalizarOpModal({ theme, visible, op, onClose, onSuccess }: Pro
           const key = it._rowKey ?? itemRowKey(it, idx);
           const opItemId = normalizeOpItemId(it);
           const maxQtd = quantidadeMaxInput(it);
-          const q = parseQtyInput(qtyByItem[key] ?? '');
+          const q = parseQtyInput(qtyByItem[key] ?? '', maxQtd);
           if (q === null) {
-            setErr('Informe quantidades válidas maiores que zero.');
+            setErr('Informe quantidades válidas (0 ou maior) em cada linha com saldo pendente.');
             return;
           }
           if (q > maxQtd + 0.0001) {
@@ -155,7 +161,7 @@ export function FinalizarOpModal({ theme, visible, op, onClose, onSuccess }: Pro
             );
             return;
           }
-          if (q <= 0) continue;
+          if (q <= 0.0001) continue;
           if (!opItemId) {
             setErr(
               'Item sem ID (op_item_id). No Supabase rode sql/08_app_faccionista_op_itens_pendentes.sql e sql/01_app_faccionista_dashboard.sql, depois atualize a lista.',
@@ -165,7 +171,7 @@ export function FinalizarOpModal({ theme, visible, op, onClose, onSuccess }: Pro
           p_itens.push({ op_item_id: opItemId, quantidade: q });
         }
         if (p_itens.length === 0) {
-          setErr('Informe ao menos um item com quantidade a finalizar.');
+          setErr('Informe ao menos um item com quantidade maior que zero, ou use "Finalizar tudo".');
           return;
         }
       }
@@ -197,6 +203,8 @@ export function FinalizarOpModal({ theme, visible, op, onClose, onSuccess }: Pro
 
   if (!op) return null;
 
+  const podeFinalizar = opPodeSerFinalizada(itens);
+
   return (
     <Modal visible={visible} transparent animationType="slide" onRequestClose={onClose}>
       <KeyboardAvoidingView
@@ -215,9 +223,9 @@ export function FinalizarOpModal({ theme, visible, op, onClose, onSuccess }: Pro
               <ActivityIndicator size="large" color={theme.primary} />
               <Text style={[styles.loadingText, { color: theme.textMuted }]}>Carregando itens…</Text>
             </View>
-          ) : itens.length === 0 ? (
+          ) : !podeFinalizar ? (
             <Text style={[styles.empty, { color: theme.textMuted }]}>
-              {err ?? 'Nenhum item pendente nesta OP.'}
+              {err ?? 'Nenhum item para finalizar nesta OP.'}
             </Text>
           ) : (
             <ScrollView
@@ -229,6 +237,7 @@ export function FinalizarOpModal({ theme, visible, op, onClose, onSuccess }: Pro
                 const key = it._rowKey ?? itemRowKey(it, idx);
                 const maxQtd = quantidadeMaxInput(it);
                 const totalQtd = quantidadeTotalItem(it);
+                const semSaldo = maxQtd <= 0.0001;
                 return (
                   <View
                     key={key}
@@ -244,39 +253,49 @@ export function FinalizarOpModal({ theme, visible, op, onClose, onSuccess }: Pro
                         ? ` · Pendente: ${fmtQty(quantidadePendente(it))}`
                         : ''}
                     </Text>
-                    <Text style={[styles.rowMax, { color: theme.textSecondary }]}>
-                      Máximo neste campo: {fmtQty(maxQtd)}
-                    </Text>
-                    <TextInput
-                      value={qtyByItem[key] ?? ''}
-                      onChangeText={(t) => {
-                        const filtrado = filtrarEntradaQuantidade(t, maxQtd);
-                        setQtyByItem((prev) => ({ ...prev, [key]: filtrado }));
-                      }}
-                      keyboardType="decimal-pad"
-                      inputMode="decimal"
-                      placeholder={fmtQty(maxQtd)}
-                      placeholderTextColor={theme.textMuted}
-                      selectTextOnFocus
-                      style={[
-                        styles.input,
-                        { color: theme.text, borderColor: theme.border, backgroundColor: theme.background },
-                      ]}
-                    />
+                    {semSaldo ? (
+                      <Text style={[styles.rowMax, { color: theme.textSecondary }]}>
+                        {totalQtd <= 0.0001
+                          ? 'Quantidade 0 — não exige finalização.'
+                          : 'Sem saldo pendente.'}
+                      </Text>
+                    ) : (
+                      <>
+                        <Text style={[styles.rowMax, { color: theme.textSecondary }]}>
+                          Máximo neste campo: {fmtQty(maxQtd)}
+                        </Text>
+                        <TextInput
+                          value={qtyByItem[key] ?? ''}
+                          onChangeText={(t) => {
+                            const filtrado = filtrarEntradaQuantidade(t, maxQtd);
+                            setQtyByItem((prev) => ({ ...prev, [key]: filtrado }));
+                          }}
+                          keyboardType="decimal-pad"
+                          inputMode="decimal"
+                          placeholder={fmtQty(maxQtd)}
+                          placeholderTextColor={theme.textMuted}
+                          selectTextOnFocus
+                          style={[
+                            styles.input,
+                            { color: theme.text, borderColor: theme.border, backgroundColor: theme.background },
+                          ]}
+                        />
+                      </>
+                    )}
                   </View>
                 );
               })}
             </ScrollView>
           )}
 
-          {err && itens.length > 0 ? <Text style={[styles.err, { color: theme.error }]}>{err}</Text> : null}
+          {err && podeFinalizar ? <Text style={[styles.err, { color: theme.error }]}>{err}</Text> : null}
 
           <Pressable
-            disabled={loading || loadingItens || itens.length === 0}
+            disabled={loading || loadingItens || !podeFinalizar}
             onPress={() => submit(false)}
             style={[
               styles.btn,
-              { backgroundColor: theme.primary, borderColor: theme.primary, opacity: itens.length === 0 ? 0.5 : 1 },
+              { backgroundColor: theme.primary, borderColor: theme.primary, opacity: !podeFinalizar ? 0.5 : 1 },
             ]}
           >
             {loading ? (
@@ -286,11 +305,11 @@ export function FinalizarOpModal({ theme, visible, op, onClose, onSuccess }: Pro
             )}
           </Pressable>
           <Pressable
-            disabled={loading || loadingItens || itens.length === 0}
+            disabled={loading || loadingItens || !podeFinalizar}
             onPress={() => submit(true)}
             style={[
               styles.btn,
-              { borderColor: theme.primary, backgroundColor: theme.surface, opacity: itens.length === 0 ? 0.5 : 1 },
+              { borderColor: theme.primary, backgroundColor: theme.surface, opacity: !podeFinalizar ? 0.5 : 1 },
             ]}
           >
             <Text style={{ color: theme.primary, fontWeight: '700' }}>Finalizar tudo (pendente)</Text>

@@ -23,6 +23,7 @@ export type OpFinalizadoRow = {
   numero_op: number;
   produto_id?: string | null;
   produto_nome: string;
+  produto_sku?: string;
   empresa_id?: string;
   empresa_nome: string;
   ultimo_finalizado_em: string;
@@ -38,6 +39,7 @@ export type OpRow = {
   status: string;
   status_faccionista?: StatusFaccionista | string | null;
   produto_nome: string;
+  produto_sku?: string;
   empresa_id?: string;
   empresa_nome: string;
   data_entrega: string;
