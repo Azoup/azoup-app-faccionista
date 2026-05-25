@@ -42,7 +42,11 @@ O arquivo `vercel.json` na raiz do repo já define isso.
 | `EXPO_PUBLIC_SUPABASE_URL` | URL do Supabase |
 | `EXPO_PUBLIC_SUPABASE_ANON_KEY` | chave anon |
 
-Marque Production, Preview e Development → **Redeploy**.
+Marque Production, Preview e Development.
+
+**Importante:** o Expo grava `EXPO_PUBLIC_*` **no momento do build**. Se você adicionar as variáveis depois, precisa **Redeploy** (não basta salvar — o site antigo continua sem URL/chave).
+
+Erro `supabaseUrl is required` = variáveis ausentes no build ou Redeploy pendente.
 
 ---
 

@@ -1,7 +1,7 @@
 import { DashboardScreen } from './screens/DashboardScreen';
 import { LoginScreen } from './screens/LoginScreen';
 import type { SessionInfo } from './types/session';
-import { supabase } from './lib/supabase';
+import { isSupabaseConfigured, supabase, supabaseConfigMessage } from './lib/supabase';
 import type { DashboardOk, DashboardResponse } from './types/api';
 import { useCallback, useEffect, useState } from 'react';
 import { ActivityIndicator, StyleSheet, View } from 'react-native';
@@ -71,6 +71,10 @@ export default function App() {
   type SyncOpts = { bootOverlay?: boolean };
 
   const syncSession = useCallback(async (opts?: SyncOpts): Promise<string | null> => {
+    if (!isSupabaseConfigured()) {
+      setSession(null);
+      return supabaseConfigMessage;
+    }
     const useOverlay = opts?.bootOverlay !== false;
     if (useOverlay) setBooting(true);
     try {
@@ -107,6 +111,11 @@ export default function App() {
   }, []);
 
   useEffect(() => {
+    if (!isSupabaseConfigured()) {
+      setBooting(false);
+      return;
+    }
+
     let cancelled = false;
 
     void syncSession();

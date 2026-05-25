@@ -1,7 +1,7 @@
 import { FIRST_ACCESS_DEFAULT_PASSWORD } from '../constants/firstAccess';
 import { darkTheme } from '../constants/theme';
-import { supabase } from '../lib/supabase';
-import { useState } from 'react';
+import { isSupabaseConfigured, supabase, supabaseConfigMessage } from '../lib/supabase';
+import { useEffect, useState } from 'react';
 import {
   ActivityIndicator,
   KeyboardAvoidingView,
@@ -36,6 +36,12 @@ export function LoginScreen({ onSignedIn }: Props) {
   const [faLoading, setFaLoading] = useState(false);
   const [faMsg, setFaMsg] = useState<string | null>(null);
 
+  useEffect(() => {
+    if (!isSupabaseConfigured()) {
+      setMsg(supabaseConfigMessage);
+    }
+  }, []);
+
   async function submit() {
     setMsg(null);
     const em = email.trim().toLowerCase();
@@ -43,8 +49,8 @@ export function LoginScreen({ onSignedIn }: Props) {
       setMsg('Informe e-mail e senha.');
       return;
     }
-    if (!process.env.EXPO_PUBLIC_SUPABASE_URL || !process.env.EXPO_PUBLIC_SUPABASE_ANON_KEY) {
-      setMsg('Configure EXPO_PUBLIC_SUPABASE_URL e EXPO_PUBLIC_SUPABASE_ANON_KEY no .env');
+    if (!isSupabaseConfigured()) {
+      setMsg(supabaseConfigMessage);
       return;
     }
 
