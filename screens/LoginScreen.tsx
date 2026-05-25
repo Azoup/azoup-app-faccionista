@@ -1,5 +1,5 @@
 import { FIRST_ACCESS_DEFAULT_PASSWORD } from '../constants/firstAccess';
-import { darkTheme } from '../constants/theme';
+import { useTheme } from '../contexts/ThemeContext';
 import { isSupabaseConfigured, supabase, supabaseConfigMessage } from '../lib/supabase';
 import { useEffect, useState } from 'react';
 import {
@@ -16,14 +16,13 @@ import {
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
-const theme = darkTheme;
-
 type Props = {
   /** Retorna mensagem de erro ou null se liberou o app (login_faccionista + dashboard OK). */
   onSignedIn: () => Promise<string | null>;
 };
 
 export function LoginScreen({ onSignedIn }: Props) {
+  const { theme } = useTheme();
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [loading, setLoading] = useState(false);

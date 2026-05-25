@@ -3,7 +3,8 @@ import { FinalizadoOpCard } from '../components/FinalizadoOpCard';
 import { FinalizarOpModal } from '../components/FinalizarOpModal';
 import { OpCard } from '../components/OpCard';
 import { OpFiltersModal } from '../components/OpFiltersModal';
-import { darkTheme } from '../constants/theme';
+import { ThemeToggleButton } from '../components/ThemeToggleButton';
+import { useTheme } from '../contexts/ThemeContext';
 import { enrichOpsComPendenteCorreto } from '../lib/enrichOpsPendente';
 import { displayElapsedSeconds } from '../lib/displayOpTimer';
 import { loadFinalizadosFaccionista } from '../lib/loadFinalizados';
@@ -29,8 +30,6 @@ import { Pressable, RefreshControl, ScrollView, StyleSheet, Text, View } from 'r
 import { SafeAreaView } from 'react-native-safe-area-context';
 import type { SessionInfo } from '../types/session';
 
-const theme = darkTheme;
-
 type Props = {
   session: SessionInfo;
   onExit: () => void;
@@ -50,6 +49,7 @@ function patchOpAfterTimerRpc(ops: OpRow[], opId: string, t: TimerAtualizarOk): 
 }
 
 export function DashboardScreen({ session, onExit }: Props) {
+  const { theme, isDark, toggleTheme } = useTheme();
   const [ops, setOps] = useState<OpRow[]>(session.initialOps);
   const [finalizados, setFinalizados] = useState<OpFinalizadoRow[]>([]);
   const [filters, setFilters] = useState<OpFilters>(defaultOpFilters);
@@ -198,16 +198,22 @@ export function DashboardScreen({ session, onExit }: Props) {
           </Text>
           <Text style={[styles.subNome, { color: theme.textMuted }]} numberOfLines={1}>
             {session.email}
+            {session.vinculosCount && session.vinculosCount > 1
+              ? ` · ${session.vinculosCount} vínculos`
+              : ''}
           </Text>
         </View>
-        <Pressable onPress={() => setFiltersOpen(true)} style={styles.filtrosBtn}>
-          <Text style={{ color: theme.primary, fontWeight: '700' }}>Filtros</Text>
-          {activeFiltersCount > 0 ? (
-            <View style={[styles.badge, { backgroundColor: theme.primary }]}>
-              <Text style={[styles.badgeText, { color: theme.textOnPrimary }]}>{activeFiltersCount}</Text>
-            </View>
-          ) : null}
-        </Pressable>
+        <View style={styles.topActions}>
+          <ThemeToggleButton theme={theme} isDark={isDark} onToggle={toggleTheme} />
+          <Pressable onPress={() => setFiltersOpen(true)} style={styles.filtrosBtn}>
+            <Text style={{ color: theme.primary, fontWeight: '700' }}>Filtros</Text>
+            {activeFiltersCount > 0 ? (
+              <View style={[styles.badge, { backgroundColor: theme.primary }]}>
+                <Text style={[styles.badgeText, { color: theme.textOnPrimary }]}>{activeFiltersCount}</Text>
+              </View>
+            ) : null}
+          </Pressable>
+        </View>
         <Pressable onPress={onExit} style={styles.sairBtn}>
           <Text style={{ color: theme.primary, fontWeight: '700' }}>Sair</Text>
         </Pressable>
@@ -305,6 +311,11 @@ const styles = StyleSheet.create({
   },
   nome: { fontSize: 18, fontWeight: '700' },
   subNome: { fontSize: 12, marginTop: 2 },
+  topActions: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+  },
   filtrosBtn: {
     flexDirection: 'row',
     alignItems: 'center',

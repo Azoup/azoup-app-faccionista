@@ -7,9 +7,7 @@ import { useCallback, useEffect, useState } from 'react';
 import { ActivityIndicator, StyleSheet, View } from 'react-native';
 import { StatusBar } from 'expo-status-bar';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
-import { darkTheme } from './constants/theme';
-
-const theme = darkTheme;
+import { ThemeProvider, useTheme } from './contexts/ThemeContext';
 
 async function fetchDashboardSession(): Promise<
   { ok: true; session: SessionInfo } | { ok: false; error: string }
@@ -54,6 +52,10 @@ async function fetchDashboardSession(): Promise<
       session: {
         faccionistaId: ok.faccionista.id,
         nome: ok.faccionista.nome ?? 'Faccionista',
+        vinculosCount:
+          typeof ok.faccionista.vinculos_count === 'number'
+            ? ok.faccionista.vinculos_count
+            : undefined,
         email,
         initialOps: Array.isArray(ok.ops) ? ok.ops : [],
       },
@@ -64,7 +66,8 @@ async function fetchDashboardSession(): Promise<
   }
 }
 
-export default function App() {
+function AppRoot() {
+  const { theme, isDark } = useTheme();
   const [session, setSession] = useState<SessionInfo | null>(null);
   const [booting, setBooting] = useState(true);
 
@@ -151,7 +154,7 @@ export default function App() {
 
   return (
     <SafeAreaProvider>
-      <StatusBar style="light" />
+      <StatusBar style={isDark ? 'light' : 'dark'} />
       {booting ? (
         <View style={[styles.boot, { backgroundColor: theme.background }]}>
           <ActivityIndicator size="large" color={theme.primary} />
@@ -168,3 +171,11 @@ export default function App() {
 const styles = StyleSheet.create({
   boot: { flex: 1, justifyContent: 'center', alignItems: 'center' },
 });
+
+export default function App() {
+  return (
+    <ThemeProvider>
+      <AppRoot />
+    </ThemeProvider>
+  );
+}

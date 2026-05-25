@@ -139,7 +139,7 @@ export type FichaTecnicaResponse = FichaTecnicaOk | FichaTecnicaErr;
 
 export type DashboardOk = {
   ok: true;
-  faccionista: { id: string; nome: string };
+  faccionista: { id: string; nome: string; vinculos_count?: number };
   ops: OpRow[];
   finalizados?: OpFinalizadoRow[];
 };
