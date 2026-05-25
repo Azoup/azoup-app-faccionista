@@ -139,13 +139,10 @@ export function LoginScreen({ onSignedIn }: Props) {
         style={styles.flex}
       >
         <View style={styles.inner}>
-          <Text style={[styles.brand, { color: theme.primary }]}>App Faccionista</Text>
-          <Text style={[styles.sub, { color: theme.textSecondary }]}>
-            Entre com o e-mail e senha do Supabase Auth. O acesso só é liberado se existir
-            linha em login_faccionista com auth_user_id igual ao seu usuário e status ativo.
-          </Text>
+          <View style={styles.card}>
+            <Text style={[styles.brand, { color: theme.primary }]}>App Faccionista</Text>
 
-          <TextInput
+            <TextInput
             value={email}
             onChangeText={setEmail}
             placeholder="E-mail"
@@ -210,9 +207,10 @@ export function LoginScreen({ onSignedIn }: Props) {
             )}
           </Pressable>
 
-          <Pressable onPress={openFirstAccess} style={styles.linkBtn}>
-            <Text style={[styles.linkText, { color: theme.primary }]}>Primeiro acesso</Text>
-          </Pressable>
+            <Pressable onPress={openFirstAccess} style={styles.linkBtn}>
+              <Text style={[styles.linkText, { color: theme.primary }]}>Primeiro acesso</Text>
+            </Pressable>
+          </View>
         </View>
       </KeyboardAvoidingView>
 
@@ -314,13 +312,31 @@ export function LoginScreen({ onSignedIn }: Props) {
   );
 }
 
+const FORM_MAX_WIDTH = 400;
+
 const styles = StyleSheet.create({
   safe: { flex: 1 },
   flex: { flex: 1 },
-  inner: { flex: 1, paddingHorizontal: 24, paddingTop: 32, justifyContent: 'center' },
-  brand: { fontSize: 28, fontWeight: '800', marginBottom: 12 },
-  sub: { fontSize: 15, lineHeight: 22, marginBottom: 28 },
+  inner: {
+    flex: 1,
+    paddingHorizontal: 24,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  card: {
+    width: '100%',
+    maxWidth: FORM_MAX_WIDTH,
+    alignSelf: 'center',
+  },
+  brand: {
+    fontSize: 28,
+    fontWeight: '800',
+    marginBottom: 28,
+    textAlign: 'center',
+  },
   input: {
+    width: '100%',
+    alignSelf: 'center',
     borderWidth: 1,
     borderRadius: 12,
     paddingHorizontal: 16,
@@ -329,6 +345,8 @@ const styles = StyleSheet.create({
     marginBottom: 12,
   },
   errBox: {
+    width: '100%',
+    alignSelf: 'center',
     marginBottom: 12,
     padding: 12,
     borderRadius: 10,
@@ -336,6 +354,8 @@ const styles = StyleSheet.create({
   },
   err: { fontSize: 14, lineHeight: 20 },
   btn: {
+    width: '100%',
+    alignSelf: 'center',
     borderRadius: 12,
     paddingVertical: 16,
     alignItems: 'center',
