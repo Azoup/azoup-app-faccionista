@@ -3,6 +3,7 @@ import {
   labelStatusFaccionista,
   normalizeStatusFaccionista,
 } from '../constants/statusFaccionista';
+import { formatProdutoComSku } from '../lib/formatProduto';
 import { parseQuantidade, quantidadePendente } from '../lib/opQuantidades';
 import type { Theme } from '../constants/theme';
 import type { OpRow } from '../types/api';
@@ -79,13 +80,8 @@ export function OpCard({
         </Text>
       ) : null}
       <Text style={[styles.title, { color: theme.text }]} numberOfLines={2}>
-        {op.produto_nome}
+        {formatProdutoComSku(op.produto_nome, op.produto_sku)}
       </Text>
-      {op.produto_sku?.trim() ? (
-        <Text style={[styles.meta, { color: theme.textSecondary }]} numberOfLines={1}>
-          SKU: {op.produto_sku.trim()}
-        </Text>
-      ) : null}
       {op.empresa_nome ? (
         <Text style={[styles.meta, { color: theme.textSecondary }]} numberOfLines={1}>
           {op.empresa_nome}

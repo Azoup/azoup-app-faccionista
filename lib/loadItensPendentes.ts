@@ -75,7 +75,9 @@ export async function loadItensPendentesOp(
   if (!error && data) {
     const payload = data as unknown as RpcItensResponse;
     if (payload && typeof payload === 'object' && 'ok' in payload && payload.ok) {
-      const list = Array.isArray(payload.itens) ? payload.itens : [];
+      const list = Array.isArray(payload.itens)
+        ? payload.itens.filter(itemIncluirNoModalFinalizar)
+        : [];
       if (list.length > 0) return { itens: list };
     }
   }

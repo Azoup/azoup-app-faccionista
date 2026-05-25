@@ -1,3 +1,4 @@
+import { formatProdutoComSku } from '../lib/formatProduto';
 import type { Theme } from '../constants/theme';
 import type { OpFinalizadoRow } from '../types/api';
 import { StyleSheet, Text, View } from 'react-native';
@@ -32,13 +33,8 @@ export function FinalizadoOpCard({ theme, op }: Props) {
     <View style={[styles.card, { backgroundColor: theme.surface, borderColor: theme.border }]}>
       <Text style={[styles.numero, { color: theme.primary }]}>OP {op.numero_op}</Text>
       <Text style={[styles.title, { color: theme.text }]} numberOfLines={2}>
-        {op.produto_nome}
+        {formatProdutoComSku(op.produto_nome, op.produto_sku)}
       </Text>
-      {op.produto_sku?.trim() ? (
-        <Text style={[styles.meta, { color: theme.textSecondary }]} numberOfLines={1}>
-          SKU: {op.produto_sku.trim()}
-        </Text>
-      ) : null}
       {op.empresa_nome ? (
         <Text style={[styles.meta, { color: theme.textSecondary }]} numberOfLines={1}>
           {op.empresa_nome}

@@ -1,6 +1,7 @@
 import type { Theme } from '../constants/theme';
 import type { EmpresaOption } from '../lib/opFilters';
 import type { OpFilters } from '../lib/opFilters';
+import { Ionicons } from '@expo/vector-icons';
 import { Platform, Pressable, ScrollView, StyleSheet, Text, TextInput, View } from 'react-native';
 
 type Props = {
@@ -71,23 +72,27 @@ export function DashboardFilterBar({ theme, empresas, filters, onChange }: Props
         })}
       </ScrollView>
 
-      <TextInput
-        value={filters.searchQuery}
-        onChangeText={(searchQuery) => onChange({ ...filters, searchQuery })}
-        placeholder="Buscar: empresa, produto, SKU, OP, cor, tamanho, parte…"
-        placeholderTextColor={theme.textMuted}
+      <View
         style={[
-          styles.search,
+          styles.searchWrap,
           {
             backgroundColor: theme.surfaceVariant,
-            color: theme.text,
             borderColor: theme.border,
           },
         ]}
-        autoCapitalize="none"
-        autoCorrect={false}
-        {...(Platform.OS === 'ios' ? { clearButtonMode: 'while-editing' as const } : {})}
-      />
+      >
+        <Ionicons name="search" size={20} color={theme.textMuted} style={styles.searchIcon} />
+        <TextInput
+          value={filters.searchQuery}
+          onChangeText={(searchQuery) => onChange({ ...filters, searchQuery })}
+          placeholder="Buscar: empresa, produto, SKU, OP, cor, tamanho, parte…"
+          placeholderTextColor={theme.textMuted}
+          style={[styles.search, { color: theme.text }]}
+          autoCapitalize="none"
+          autoCorrect={false}
+          {...(Platform.OS === 'ios' ? { clearButtonMode: 'while-editing' as const } : {})}
+        />
+      </View>
     </View>
   );
 }
@@ -111,13 +116,24 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     maxWidth: 200,
   },
-  search: {
+  searchWrap: {
     marginHorizontal: 12,
     marginTop: 8,
     borderWidth: 1,
     borderRadius: 10,
-    paddingHorizontal: 14,
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingLeft: 12,
+    paddingRight: 4,
+  },
+  searchIcon: {
+    marginRight: 8,
+  },
+  search: {
+    flex: 1,
     paddingVertical: 10,
+    paddingRight: 10,
     fontSize: 14,
+    ...(Platform.OS === 'web' ? { outlineStyle: 'none' as const } : {}),
   },
 });

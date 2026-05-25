@@ -3,8 +3,9 @@ import {
   filtrarEntradaQuantidade,
   formatQuantidadeInput,
   formatQuantidadeLabel,
+  itemIncluirNoModalFinalizar,
+  itemVariavelComQuantidade,
   opPodeSerFinalizada,
-  parseQuantidade,
   quantidadeMaxInput,
   quantidadePendente,
   quantidadeTotalItem,
@@ -38,12 +39,9 @@ type Props = {
   onSuccess: () => void | Promise<void>;
 };
 
-function parseQtyInput(raw: string, maxQtd: number): number | null {
+function parseQtyInput(raw: string): number | null {
   const trimmed = raw.trim();
-  if (trimmed === '') {
-    if (maxQtd <= 0.0001) return 0;
-    return null;
-  }
+  if (trimmed === '') return null;
   const n = parseFloat(trimmed.replace(',', '.'));
   if (Number.isNaN(n) || n < 0) return null;
   return n;
@@ -77,10 +75,17 @@ function initQtyMap(list: OpItemRowUi[]): Record<string, string> {
   const init: Record<string, string> = {};
   list.forEach((it, idx) => {
     const key = it._rowKey ?? itemRowKey(it, idx);
-    const max = quantidadeMaxInput(it);
-    init[key] = max <= 0.0001 ? '0' : formatQuantidadeInput(max);
+    init[key] = formatQuantidadeInput(quantidadeMaxInput(it));
   });
   return init;
+}
+
+function mensagemOpNaoFinalizavel(itensBrutos: OpItemRow[]): string {
+  const comQtd = itensBrutos.filter(itemVariavelComQuantidade);
+  if (comQtd.length === 0) {
+    return 'Todas as variações estão com quantidade zero; é necessário ao menos uma com quantidade maior que zero.';
+  }
+  return 'Nenhuma variação com saldo pendente maior que zero.';
 }
 
 export function FinalizarOpModal({ theme, visible, op, onClose, onSuccess }: Props) {
@@ -112,13 +117,14 @@ export function FinalizarOpModal({ theme, visible, op, onClose, onSuccess }: Pro
 
         if (cancelled) return;
 
-        const normalized = normalizeItens(list);
+        const filtrados = list.filter(itemIncluirNoModalFinalizar);
+        const normalized = normalizeItens(filtrados);
 
         if (!cancelled) {
           setItens(normalized);
           setQtyByItem(initQtyMap(normalized));
           if (!opPodeSerFinalizada(normalized)) {
-            setErr(warn ?? 'Nenhum item para finalizar nesta OP.');
+            setErr(warn ?? mensagemOpNaoFinalizavel(list));
           } else if (normalized.some((it) => !normalizeOpItemId(it))) {
             setErr(
               'Itens sem ID no servidor. Rode sql/08 e sql/01 no Supabase, puxe para atualizar a lista e tente de novo.',
@@ -144,15 +150,22 @@ export function FinalizarOpModal({ theme, visible, op, onClose, onSuccess }: Pro
     setLoading(true);
     try {
       let p_itens: { op_item_id: string; quantidade: number }[] = [];
+      if (!opPodeSerFinalizada(itens)) {
+        setErr(mensagemOpNaoFinalizavel(itens));
+        return;
+      }
+
       if (!finalizarTudo) {
         for (let idx = 0; idx < itens.length; idx++) {
           const it = itens[idx];
           const key = it._rowKey ?? itemRowKey(it, idx);
           const opItemId = normalizeOpItemId(it);
           const maxQtd = quantidadeMaxInput(it);
-          const q = parseQtyInput(qtyByItem[key] ?? '', maxQtd);
+          if (maxQtd <= 0.0001) continue;
+
+          const q = parseQtyInput(qtyByItem[key] ?? '');
           if (q === null) {
-            setErr('Informe quantidades válidas (0 ou maior) em cada linha com saldo pendente.');
+            setErr('Informe quantidade válida em cada variação com saldo pendente (use 0 para ignorar).');
             return;
           }
           if (q > maxQtd + 0.0001) {
@@ -171,7 +184,9 @@ export function FinalizarOpModal({ theme, visible, op, onClose, onSuccess }: Pro
           p_itens.push({ op_item_id: opItemId, quantidade: q });
         }
         if (p_itens.length === 0) {
-          setErr('Informe ao menos um item com quantidade maior que zero, ou use "Finalizar tudo".');
+          setErr(
+            'Informe ao menos uma variação com quantidade maior que zero, ou use "Finalizar tudo".',
+          );
           return;
         }
       }
@@ -237,7 +252,6 @@ export function FinalizarOpModal({ theme, visible, op, onClose, onSuccess }: Pro
                 const key = it._rowKey ?? itemRowKey(it, idx);
                 const maxQtd = quantidadeMaxInput(it);
                 const totalQtd = quantidadeTotalItem(it);
-                const semSaldo = maxQtd <= 0.0001;
                 return (
                   <View
                     key={key}
@@ -253,35 +267,25 @@ export function FinalizarOpModal({ theme, visible, op, onClose, onSuccess }: Pro
                         ? ` · Pendente: ${fmtQty(quantidadePendente(it))}`
                         : ''}
                     </Text>
-                    {semSaldo ? (
-                      <Text style={[styles.rowMax, { color: theme.textSecondary }]}>
-                        {totalQtd <= 0.0001
-                          ? 'Quantidade 0 — não exige finalização.'
-                          : 'Sem saldo pendente.'}
-                      </Text>
-                    ) : (
-                      <>
-                        <Text style={[styles.rowMax, { color: theme.textSecondary }]}>
-                          Máximo neste campo: {fmtQty(maxQtd)}
-                        </Text>
-                        <TextInput
-                          value={qtyByItem[key] ?? ''}
-                          onChangeText={(t) => {
-                            const filtrado = filtrarEntradaQuantidade(t, maxQtd);
-                            setQtyByItem((prev) => ({ ...prev, [key]: filtrado }));
-                          }}
-                          keyboardType="decimal-pad"
-                          inputMode="decimal"
-                          placeholder={fmtQty(maxQtd)}
-                          placeholderTextColor={theme.textMuted}
-                          selectTextOnFocus
-                          style={[
-                            styles.input,
-                            { color: theme.text, borderColor: theme.border, backgroundColor: theme.background },
-                          ]}
-                        />
-                      </>
-                    )}
+                    <Text style={[styles.rowMax, { color: theme.textSecondary }]}>
+                      Máximo neste campo: {fmtQty(maxQtd)} (0 = não finaliza esta variação)
+                    </Text>
+                    <TextInput
+                      value={qtyByItem[key] ?? ''}
+                      onChangeText={(t) => {
+                        const filtrado = filtrarEntradaQuantidade(t, maxQtd);
+                        setQtyByItem((prev) => ({ ...prev, [key]: filtrado }));
+                      }}
+                      keyboardType="decimal-pad"
+                      inputMode="decimal"
+                      placeholder={fmtQty(maxQtd)}
+                      placeholderTextColor={theme.textMuted}
+                      selectTextOnFocus
+                      style={[
+                        styles.input,
+                        { color: theme.text, borderColor: theme.border, backgroundColor: theme.background },
+                      ]}
+                    />
                   </View>
                 );
               })}
