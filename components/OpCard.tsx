@@ -3,6 +3,7 @@ import {
   labelStatusFaccionista,
   normalizeStatusFaccionista,
 } from '../constants/statusFaccionista';
+import { formatDataLabel } from '../lib/formatData';
 import { formatProdutoComSku } from '../lib/formatProduto';
 import { parseQuantidade, quantidadePendente } from '../lib/opQuantidades';
 import type { Theme } from '../constants/theme';
@@ -65,6 +66,7 @@ export function OpCard({
     .toUpperCase();
   const showErpStatus = erpStatus.length > 0 && erpStatus !== 'EM_PRODUCAO';
   const showStatusFacc = statusFacc !== STATUS_FACCIONISTA.EM_PRODUCAO;
+  const previsaoFinalizacao = formatDataLabel(op.data_previsao_finalizacao);
 
   return (
     <View style={[styles.card, { backgroundColor: theme.surface, borderColor: theme.border }]}>
@@ -90,6 +92,11 @@ export function OpCard({
       <Text style={[styles.meta, { color: theme.textSecondary }]}>
         Data de envio: {formatEntregaLabel(op.data_entrega)}
       </Text>
+      {previsaoFinalizacao ? (
+        <Text style={[styles.meta, { color: theme.textSecondary }]}>
+          Previsão de finalização: {previsaoFinalizacao}
+        </Text>
+      ) : null}
       {op.fase_nome ? (
         <Text style={[styles.fase, { color: theme.textMuted }]} numberOfLines={1}>
           Fase: {op.fase_nome}
@@ -149,35 +156,35 @@ export function OpCard({
       )}
 
       <View style={[styles.timerRow, { borderTopColor: theme.border }]}>
-        <Text style={[styles.timer, { color: theme.text }]}>{formatElapsed(elapsedMs)}</Text>
-        <View style={styles.actions}>
+        <View style={styles.timerLeft}>
           <Pressable
             onPress={onToggleTimer}
             accessibilityLabel={running ? 'Pausar cronômetro' : 'Iniciar cronômetro'}
             accessibilityRole="button"
             style={({ pressed }) => [
               styles.btnPlay,
-              { backgroundColor: running ? theme.surfaceVariant : theme.primary },
+              { backgroundColor: theme.surfaceVariant, borderColor: theme.border },
               pressed && styles.pressed,
             ]}
           >
             <Ionicons
               name={running ? 'pause' : 'play'}
               size={24}
-              color={running ? theme.text : theme.textOnPrimary}
+              color={running ? theme.error : theme.success}
             />
           </Pressable>
-          <Pressable
-            onPress={onRequestFinish}
-            style={({ pressed }) => [
-              styles.btnDone,
-              { borderColor: theme.primary },
-              pressed && styles.pressed,
-            ]}
-          >
-            <Text style={{ color: theme.primary, fontWeight: '700' }}>Finalizar</Text>
-          </Pressable>
+          <Text style={[styles.timer, { color: theme.text }]}>{formatElapsed(elapsedMs)}</Text>
         </View>
+        <Pressable
+          onPress={onRequestFinish}
+          style={({ pressed }) => [
+            styles.btnDone,
+            { borderColor: theme.primary },
+            pressed && styles.pressed,
+          ]}
+        >
+          <Text style={{ color: theme.primary, fontWeight: '700' }}>Finalizar</Text>
+        </Pressable>
       </View>
     </View>
   );
@@ -233,13 +240,20 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
+    gap: 10,
+  },
+  timerLeft: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 12,
+    flexShrink: 1,
   },
   timer: { fontVariant: ['tabular-nums'], fontSize: 22, fontWeight: '700' },
-  actions: { flexDirection: 'row', gap: 10, flexShrink: 1, flexWrap: 'wrap', justifyContent: 'flex-end' },
   btnPlay: {
     width: 44,
     height: 44,
     borderRadius: 10,
+    borderWidth: 1,
     alignItems: 'center',
     justifyContent: 'center',
   },

@@ -1,6 +1,5 @@
 import type { Theme } from '../constants/theme';
-import type { EmpresaOption } from '../lib/opFilters';
-import type { OpFilters } from '../lib/opFilters';
+import type { EmpresaOption, ListaOpFiltro, OpFilters } from '../lib/opFilters';
 import { Ionicons } from '@expo/vector-icons';
 import { Platform, Pressable, ScrollView, StyleSheet, Text, TextInput, View } from 'react-native';
 
@@ -11,9 +10,30 @@ type Props = {
   onChange: (next: OpFilters) => void;
 };
 
+const LISTA_OP_OPCOES: { id: ListaOpFiltro; label: string }[] = [
+  { id: 'todas', label: 'Todas' },
+  { id: 'pendentes', label: 'Pendentes' },
+  { id: 'finalizados', label: 'Finalizados' },
+];
+
 export function DashboardFilterBar({ theme, empresas, filters, onChange }: Props) {
   function setEmpresa(key: string | null) {
     onChange({ ...filters, empresaKey: key });
+  }
+
+  function setListaOp(listaOp: ListaOpFiltro) {
+    onChange({ ...filters, listaOp });
+  }
+
+  function chipStyle(active: boolean) {
+    return {
+      backgroundColor: active ? theme.primary : theme.surfaceVariant,
+      borderColor: active ? theme.primary : theme.border,
+    };
+  }
+
+  function chipTextColor(active: boolean) {
+    return active ? theme.textOnPrimary : theme.text;
   }
 
   return (
@@ -109,6 +129,13 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
   },
+  listaOpRow: {
+    paddingHorizontal: 12,
+    paddingTop: 8,
+    gap: 8,
+    flexDirection: 'row',
+    alignItems: 'center',
+  },
   chip: {
     paddingHorizontal: 12,
     paddingVertical: 8,
@@ -133,7 +160,8 @@ const styles = StyleSheet.create({
     flex: 1,
     paddingVertical: 10,
     paddingRight: 10,
-    fontSize: 14,
+    /* ≥16px evita zoom automático no Safari/iOS ao focar o campo */
+    fontSize: 16,
     ...(Platform.OS === 'web' ? { outlineStyle: 'none' as const } : {}),
   },
 });

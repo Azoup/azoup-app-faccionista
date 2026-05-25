@@ -2,17 +2,30 @@ import type { OpFinalizadoRow, OpRow } from '../types/api';
 
 export type EntregaSortOrder = 'asc' | 'desc';
 
+/** Quais listas de OP exibir no dashboard. */
+export type ListaOpFiltro = 'todas' | 'pendentes' | 'finalizados';
+
 export type OpFilters = {
   empresaKey: string | null;
   searchQuery: string;
   sortEntrega: EntregaSortOrder;
+  listaOp: ListaOpFiltro;
 };
 
 export const defaultOpFilters: OpFilters = {
   empresaKey: null,
   searchQuery: '',
   sortEntrega: 'asc',
+  listaOp: 'todas',
 };
+
+export function mostrarOpsPendentes(listaOp: ListaOpFiltro): boolean {
+  return listaOp === 'todas' || listaOp === 'pendentes';
+}
+
+export function mostrarOpsFinalizados(listaOp: ListaOpFiltro): boolean {
+  return listaOp === 'todas' || listaOp === 'finalizados';
+}
 
 export type EmpresaOption = { key: string; label: string };
 
@@ -104,7 +117,11 @@ export function matchesSearchFinalizado(op: OpFinalizadoRow, searchQuery: string
 }
 
 export function hasActiveFilters(f: OpFilters): boolean {
-  return Boolean(f.empresaKey) || Boolean(f.searchQuery.trim());
+  return (
+    Boolean(f.empresaKey) ||
+    Boolean(f.searchQuery.trim()) ||
+    f.listaOp !== 'todas'
+  );
 }
 
 export function isOpEmProducao(op: { status?: string }): boolean {

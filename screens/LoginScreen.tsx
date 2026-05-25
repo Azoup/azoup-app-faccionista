@@ -1,9 +1,17 @@
 import { FIRST_ACCESS_DEFAULT_PASSWORD } from '../constants/firstAccess';
 import { useTheme } from '../contexts/ThemeContext';
+import {
+  completePasswordReset,
+  getBackendUrl,
+  isPasswordStrongEnough,
+  isResetCodeValid,
+  requestPasswordReset,
+} from '../lib/passwordResetApi';
 import { isSupabaseConfigured, supabase, supabaseConfigMessage } from '../lib/supabase';
 import { useEffect, useState } from 'react';
 import {
   ActivityIndicator,
+  Alert,
   Image,
   KeyboardAvoidingView,
   Modal,
@@ -35,6 +43,15 @@ export function LoginScreen({ onSignedIn }: Props) {
   const [faConfirm, setFaConfirm] = useState('');
   const [faLoading, setFaLoading] = useState(false);
   const [faMsg, setFaMsg] = useState<string | null>(null);
+
+  const [forgotOpen, setForgotOpen] = useState(false);
+  const [forgotStep, setForgotStep] = useState<'email' | 'reset'>('email');
+  const [forgotEmail, setForgotEmail] = useState('');
+  const [resetCode, setResetCode] = useState('');
+  const [newPassword, setNewPassword] = useState('');
+  const [confirmNewPassword, setConfirmNewPassword] = useState('');
+  const [forgotLoading, setForgotLoading] = useState(false);
+  const [forgotMsg, setForgotMsg] = useState<string | null>(null);
 
   useEffect(() => {
     if (!isSupabaseConfigured()) {
@@ -84,6 +101,85 @@ export function LoginScreen({ onSignedIn }: Props) {
     setFaNewPass('');
     setFaConfirm('');
     setFirstAccessOpen(true);
+  }
+
+  function openForgotPassword() {
+    if (!getBackendUrl()) {
+      Alert.alert('Configuração', 'EXPO_PUBLIC_BACKEND_URL não está definida no app.');
+      return;
+    }
+    setForgotMsg(null);
+    setForgotStep('email');
+    setForgotEmail(email.trim().toLowerCase());
+    setResetCode('');
+    setNewPassword('');
+    setConfirmNewPassword('');
+    setForgotOpen(true);
+  }
+
+  function closeForgotPassword() {
+    if (forgotLoading) return;
+    setForgotOpen(false);
+  }
+
+  async function sendForgotCode() {
+    setForgotMsg(null);
+    const em = forgotEmail.trim().toLowerCase();
+    if (!em) {
+      setForgotMsg('Informe o e-mail.');
+      return;
+    }
+
+    setForgotLoading(true);
+    try {
+      const result = await requestPasswordReset(em);
+      if (!result.ok) {
+        setForgotMsg(result.message);
+        return;
+      }
+      if (!result.emailCadastrado) {
+        Alert.alert('E-mail não cadastrado', result.message);
+        return;
+      }
+      Alert.alert('Verifique seu e-mail', result.message);
+      setForgotStep('reset');
+    } finally {
+      setForgotLoading(false);
+    }
+  }
+
+  async function submitForgotReset() {
+    setForgotMsg(null);
+    const em = forgotEmail.trim().toLowerCase();
+    const code = resetCode.trim();
+
+    if (!isResetCodeValid(code)) {
+      setForgotMsg('Informe o código de 6 dígitos.');
+      return;
+    }
+    if (!isPasswordStrongEnough(newPassword)) {
+      setForgotMsg('A senha deve ter pelo menos 8 caracteres, com letras e números.');
+      return;
+    }
+    if (newPassword !== confirmNewPassword) {
+      setForgotMsg('A confirmação da senha não confere.');
+      return;
+    }
+
+    setForgotLoading(true);
+    try {
+      const result = await completePasswordReset(em, code, newPassword);
+      if (!result.ok) {
+        setForgotMsg(result.message);
+        return;
+      }
+      setForgotOpen(false);
+      setEmail(em);
+      setPassword('');
+      setMsg(result.message + ' Entre com a nova senha.');
+    } finally {
+      setForgotLoading(false);
+    }
   }
 
   async function saveFirstAccess() {
@@ -213,7 +309,10 @@ export function LoginScreen({ onSignedIn }: Props) {
             )}
           </Pressable>
 
-            <Pressable onPress={openFirstAccess} style={styles.linkBtn}>
+            <Pressable onPress={openForgotPassword} style={styles.linkBtn}>
+              <Text style={[styles.linkText, { color: theme.primary }]}>Esqueceu a senha?</Text>
+            </Pressable>
+            <Pressable onPress={openFirstAccess} style={[styles.linkBtn, styles.linkBtnTight]}>
               <Text style={[styles.linkText, { color: theme.primary }]}>Primeiro acesso</Text>
             </Pressable>
           </View>
@@ -314,6 +413,165 @@ export function LoginScreen({ onSignedIn }: Props) {
           </View>
         </KeyboardAvoidingView>
       </Modal>
+
+      <Modal
+        visible={forgotOpen}
+        transparent
+        animationType="fade"
+        onRequestClose={closeForgotPassword}
+      >
+        <KeyboardAvoidingView
+          behavior={Platform.OS === 'ios' ? 'padding' : undefined}
+          style={styles.modalBackdrop}
+        >
+          <View style={[styles.modalBox, { backgroundColor: theme.surfaceElevated, borderColor: theme.border }]}>
+            <Text style={[styles.modalTitle, { color: theme.text }]}>
+              {forgotStep === 'email' ? 'Esqueci a senha' : 'Redefinir senha'}
+            </Text>
+            <Text style={[styles.modalSub, { color: theme.textSecondary }]}>
+              {forgotStep === 'email'
+                ? 'Informe o e-mail da sua conta. Enviaremos um código de 6 dígitos.'
+                : 'Digite o código recebido por e-mail e escolha a nova senha.'}
+            </Text>
+            <ScrollView keyboardShouldPersistTaps="handled" showsVerticalScrollIndicator={false}>
+              <TextInput
+                value={forgotEmail}
+                onChangeText={setForgotEmail}
+                placeholder="E-mail"
+                placeholderTextColor={theme.textMuted}
+                keyboardType="email-address"
+                autoCapitalize="none"
+                autoCorrect={false}
+                editable={forgotStep === 'email' && !forgotLoading}
+                style={[
+                  styles.input,
+                  {
+                    backgroundColor: theme.surfaceVariant,
+                    color: theme.text,
+                    borderColor: theme.border,
+                    opacity: forgotStep === 'reset' ? 0.85 : 1,
+                  },
+                ]}
+              />
+              {forgotStep === 'reset' ? (
+                <>
+                  <TextInput
+                    value={resetCode}
+                    onChangeText={(t) => setResetCode(t.replace(/\D/g, '').slice(0, 6))}
+                    placeholder="Código (6 dígitos)"
+                    placeholderTextColor={theme.textMuted}
+                    keyboardType="number-pad"
+                    inputMode="numeric"
+                    maxLength={6}
+                    autoCapitalize="none"
+                    style={[
+                      styles.input,
+                      {
+                        backgroundColor: theme.surfaceVariant,
+                        color: theme.text,
+                        borderColor: theme.border,
+                        letterSpacing: 4,
+                      },
+                    ]}
+                  />
+                  <TextInput
+                    value={newPassword}
+                    onChangeText={setNewPassword}
+                    placeholder="Nova senha (mín. 8, letras e números)"
+                    placeholderTextColor={theme.textMuted}
+                    secureTextEntry
+                    autoCapitalize="none"
+                    style={[
+                      styles.input,
+                      {
+                        backgroundColor: theme.surfaceVariant,
+                        color: theme.text,
+                        borderColor: theme.border,
+                      },
+                    ]}
+                  />
+                  <TextInput
+                    value={confirmNewPassword}
+                    onChangeText={setConfirmNewPassword}
+                    placeholder="Confirmar nova senha"
+                    placeholderTextColor={theme.textMuted}
+                    secureTextEntry
+                    autoCapitalize="none"
+                    style={[
+                      styles.input,
+                      {
+                        backgroundColor: theme.surfaceVariant,
+                        color: theme.text,
+                        borderColor: theme.border,
+                      },
+                    ]}
+                  />
+                </>
+              ) : null}
+              {forgotMsg ? <Text style={[styles.err, { color: theme.error }]}>{forgotMsg}</Text> : null}
+              <View style={styles.modalActions}>
+                <Pressable
+                  onPress={closeForgotPassword}
+                  disabled={forgotLoading}
+                  style={[styles.modalBtn, { borderColor: theme.border }]}
+                >
+                  <Text style={{ color: theme.text, fontWeight: '600' }}>Cancelar</Text>
+                </Pressable>
+                {forgotStep === 'email' ? (
+                  <Pressable
+                    onPress={sendForgotCode}
+                    disabled={forgotLoading}
+                    style={[
+                      styles.modalBtn,
+                      { backgroundColor: theme.primary, borderColor: theme.primary },
+                      forgotLoading && styles.btnDim,
+                    ]}
+                  >
+                    {forgotLoading ? (
+                      <ActivityIndicator color={theme.textOnPrimary} />
+                    ) : (
+                      <Text style={{ color: theme.textOnPrimary, fontWeight: '700' }}>Enviar código</Text>
+                    )}
+                  </Pressable>
+                ) : (
+                  <Pressable
+                    onPress={submitForgotReset}
+                    disabled={forgotLoading}
+                    style={[
+                      styles.modalBtn,
+                      { backgroundColor: theme.primary, borderColor: theme.primary },
+                      forgotLoading && styles.btnDim,
+                    ]}
+                  >
+                    {forgotLoading ? (
+                      <ActivityIndicator color={theme.textOnPrimary} />
+                    ) : (
+                      <Text style={{ color: theme.textOnPrimary, fontWeight: '700' }}>Redefinir</Text>
+                    )}
+                  </Pressable>
+                )}
+              </View>
+              {forgotStep === 'reset' ? (
+                <Pressable
+                  onPress={() => {
+                    setForgotStep('email');
+                    setResetCode('');
+                    setNewPassword('');
+                    setConfirmNewPassword('');
+                    setForgotMsg(null);
+                  }}
+                  disabled={forgotLoading}
+                  style={styles.resendLink}
+                >
+                  <Text style={{ color: theme.primary, fontWeight: '600', fontSize: 14 }}>
+                    Solicitar novo código
+                  </Text>
+                </Pressable>
+              ) : null}
+            </ScrollView>
+          </View>
+        </KeyboardAvoidingView>
+      </Modal>
     </SafeAreaView>
   );
 }
@@ -376,7 +634,9 @@ const styles = StyleSheet.create({
   btnDim: { opacity: 0.75 },
   btnText: { fontSize: 17, fontWeight: '700' },
   linkBtn: { marginTop: 20, alignSelf: 'center', paddingVertical: 8 },
+  linkBtnTight: { marginTop: 8 },
   linkText: { fontSize: 16, fontWeight: '700', textDecorationLine: 'underline' },
+  resendLink: { alignSelf: 'center', paddingVertical: 12, marginBottom: 4 },
   modalBackdrop: {
     flex: 1,
     backgroundColor: 'rgba(0,0,0,0.55)',

@@ -29,9 +29,27 @@ for (const f of files) {
   await copyFile(path.join(pub, f), path.join(dist, f));
 }
 
+const noInputZoomStyle = `
+    <style id="app-no-input-zoom">
+      input, textarea, select {
+        font-size: 16px !important;
+      }
+    </style>`;
+
 let html = await readFile(path.join(dist, 'index.html'), 'utf8');
+let changed = false;
+
 if (!html.includes('favicon-32.png')) {
   html = html.replace('</title>', `</title>${faviconTags}`);
+  changed = true;
+}
+
+if (!html.includes('app-no-input-zoom')) {
+  html = html.replace('</head>', `${noInputZoomStyle}\n  </head>`);
+  changed = true;
+}
+
+if (changed) {
   await writeFile(path.join(dist, 'index.html'), html, 'utf8');
 }
 

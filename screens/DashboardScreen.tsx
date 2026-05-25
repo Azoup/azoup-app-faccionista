@@ -14,6 +14,8 @@ import {
   filterAndSortFinalizados,
   filterAndSortOps,
   hasActiveFilters,
+  mostrarOpsFinalizados,
+  mostrarOpsPendentes,
   type OpFilters,
 } from '../lib/opFilters';
 import type {
@@ -113,6 +115,8 @@ export function DashboardScreen({ session, onExit }: Props) {
 
   const empresas = useMemo(() => collectEmpresas(ops, finalizados), [ops, finalizados]);
   const filtersActive = hasActiveFilters(filters);
+  const showPendentes = mostrarOpsPendentes(filters.listaOp);
+  const showFinalizados = mostrarOpsFinalizados(filters.listaOp);
 
   const activeOps = useMemo(() => filterAndSortOps(ops, filters), [ops, filters]);
   const finalizadosFiltrados = useMemo(
@@ -234,36 +238,53 @@ export function DashboardScreen({ session, onExit }: Props) {
       >
         {filtersActive ? (
           <Text style={[styles.filterHint, { color: theme.primary }]}>
-            Filtro ativo · {activeOps.length} pendente(s) · {finalizadosFiltrados.length} finalizada(s)
+            Filtro ativo
+            {showPendentes ? ` · ${activeOps.length} pendente(s)` : ''}
+            {showFinalizados ? ` · ${finalizadosFiltrados.length} finalizada(s)` : ''}
           </Text>
         ) : null}
 
-        <Text style={[styles.section, { color: theme.textSecondary }]}>Em produção (pendente)</Text>
-        {activeOps.length === 0 ? (
-          <Text style={[styles.empty, { color: theme.textMuted }]}>{emptyPendenteMsg}</Text>
-        ) : (
-          activeOps.map((op) => (
-            <OpCard
-              key={op.op_id}
-              theme={theme}
-              op={op}
-              elapsedMs={elapsedMsFromOp(op)}
-              running={isOpTimerRunning(op)}
-              onToggleTimer={() => toggleTimer(op.op_id)}
-              onRequestFinish={() => setFinishOp(op)}
-              onOpenFicha={(pid, nome) => setFichaTarget({ produtoId: pid, produtoNome: nome })}
-            />
-          ))
-        )}
+        {showPendentes ? (
+          <>
+            <Text style={[styles.section, { color: theme.textSecondary }]}>Em produção (pendente)</Text>
+            {activeOps.length === 0 ? (
+              <Text style={[styles.empty, { color: theme.textMuted }]}>{emptyPendenteMsg}</Text>
+            ) : (
+              activeOps.map((op) => (
+                <OpCard
+                  key={op.op_id}
+                  theme={theme}
+                  op={op}
+                  elapsedMs={elapsedMsFromOp(op)}
+                  running={isOpTimerRunning(op)}
+                  onToggleTimer={() => toggleTimer(op.op_id)}
+                  onRequestFinish={() => setFinishOp(op)}
+                  onOpenFicha={(pid, nome) => setFichaTarget({ produtoId: pid, produtoNome: nome })}
+                />
+              ))
+            )}
+          </>
+        ) : null}
 
-        <Text style={[styles.section, { color: theme.textSecondary, marginTop: 24 }]}>
-          Finalizado (por você)
-        </Text>
-        {finalizadosFiltrados.length === 0 ? (
-          <Text style={[styles.empty, { color: theme.textMuted }]}>{emptyFinMsg}</Text>
-        ) : (
-          finalizadosFiltrados.map((op) => <FinalizadoOpCard key={op.op_id} theme={theme} op={op} />)
-        )}
+        {showFinalizados ? (
+          <>
+            <Text
+              style={[
+                styles.section,
+                { color: theme.textSecondary, marginTop: showPendentes ? 24 : 0 },
+              ]}
+            >
+              Finalizado (por você)
+            </Text>
+            {finalizadosFiltrados.length === 0 ? (
+              <Text style={[styles.empty, { color: theme.textMuted }]}>{emptyFinMsg}</Text>
+            ) : (
+              finalizadosFiltrados.map((op) => (
+                <FinalizadoOpCard key={op.op_id} theme={theme} op={op} />
+              ))
+            )}
+          </>
+        ) : null}
       </ScrollView>
 
       <FinalizarOpModal

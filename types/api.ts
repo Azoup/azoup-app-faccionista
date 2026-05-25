@@ -43,6 +43,8 @@ export type OpRow = {
   empresa_id?: string;
   empresa_nome: string;
   data_entrega: string;
+  /** DATE em producao_op — previsão da fase atual (Kanban). */
+  data_previsao_finalizacao?: string | null;
   observacao: string;
   fase_nome: string;
   itens?: OpItemRow[];
