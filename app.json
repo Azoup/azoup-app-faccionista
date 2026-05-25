@@ -24,7 +24,7 @@
       "predictiveBackGestureEnabled": false
     },
     "web": {
-      "favicon": "./logo.png"
+      "favicon": "./public/favicon-192.png"
     }
   }
 }
