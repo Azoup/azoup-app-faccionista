@@ -16,7 +16,6 @@ import {
   filterAndSortOps,
   type OpFilters,
 } from '../lib/opFilters';
-import { supabase } from '../lib/supabase';
 import type {
   DashboardOk,
   DashboardResponse,
@@ -27,6 +26,7 @@ import type {
 } from '../types/api';
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import { Pressable, RefreshControl, ScrollView, StyleSheet, Text, View } from 'react-native';
+import { supabase } from '../lib/supabase';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import type { SessionInfo } from '../types/session';
 
@@ -50,6 +50,7 @@ function patchOpAfterTimerRpc(ops: OpRow[], opId: string, t: TimerAtualizarOk): 
 
 export function DashboardScreen({ session, onExit }: Props) {
   const { theme, isDark, toggleTheme } = useTheme();
+  const [displayEmail, setDisplayEmail] = useState(session.email);
   const [ops, setOps] = useState<OpRow[]>(session.initialOps);
   const [finalizados, setFinalizados] = useState<OpFinalizadoRow[]>([]);
   const [filters, setFilters] = useState<OpFilters>(defaultOpFilters);
@@ -96,6 +97,15 @@ export function DashboardScreen({ session, onExit }: Props) {
   useEffect(() => {
     void fetchOps();
   }, [fetchOps]);
+
+  useEffect(() => {
+    setDisplayEmail(session.email);
+    if (session.email) return;
+    void supabase.auth.getUser().then(({ data }) => {
+      const em = data.user?.email?.trim();
+      if (em) setDisplayEmail(em);
+    });
+  }, [session.email]);
 
   useEffect(() => {
     const id = setInterval(() => setTick((x) => x + 1), 1000);
@@ -191,16 +201,14 @@ export function DashboardScreen({ session, onExit }: Props) {
 
   return (
     <SafeAreaView style={[styles.safe, { backgroundColor: theme.background }]} edges={['top']}>
-      <View style={[styles.topBar, { borderBottomColor: theme.border }]}>
-        <View style={styles.topBarUser}>
-          <Text style={[styles.userEmail, { color: theme.textMuted }]} numberOfLines={1}>
-            {session.email}
-            {session.vinculosCount && session.vinculosCount > 1
-              ? ` · ${session.vinculosCount} vínculos`
-              : ''}
-          </Text>
-        </View>
-        <View style={styles.topActions}>
+      <View style={[styles.topBar, { borderBottomColor: theme.border, backgroundColor: theme.surface }]}>
+        <Text style={[styles.userEmail, { color: theme.text }]} numberOfLines={2}>
+          {displayEmail || '—'}
+          {session.vinculosCount && session.vinculosCount > 1
+            ? ` · ${session.vinculosCount} vínculos`
+            : ''}
+        </Text>
+        <View style={styles.topBarActionsRow}>
           <ThemeToggleButton theme={theme} isDark={isDark} onToggle={toggleTheme} />
           <Pressable onPress={() => setFiltersOpen(true)} style={styles.filtrosBtn}>
             <Text style={{ color: theme.primary, fontWeight: '700' }}>Filtros</Text>
@@ -210,10 +218,10 @@ export function DashboardScreen({ session, onExit }: Props) {
               </View>
             ) : null}
           </Pressable>
+          <Pressable onPress={onExit} style={styles.sairBtn}>
+            <Text style={{ color: theme.primary, fontWeight: '700' }}>Sair</Text>
+          </Pressable>
         </View>
-        <Pressable onPress={onExit} style={styles.sairBtn}>
-          <Text style={{ color: theme.primary, fontWeight: '700' }}>Sair</Text>
-        </Pressable>
       </View>
 
       {err ? (
@@ -299,19 +307,18 @@ export function DashboardScreen({ session, onExit }: Props) {
 const styles = StyleSheet.create({
   safe: { flex: 1 },
   topBar: {
-    flexDirection: 'row',
-    alignItems: 'center',
     paddingHorizontal: 16,
-    paddingVertical: 12,
+    paddingTop: 10,
+    paddingBottom: 12,
     borderBottomWidth: 1,
-    gap: 8,
+    gap: 10,
   },
-  topBarUser: { flex: 1, justifyContent: 'center', minWidth: 0, paddingRight: 8 },
-  userEmail: { fontSize: 13, fontWeight: '500' },
-  topActions: {
+  userEmail: { fontSize: 14, fontWeight: '600', lineHeight: 20 },
+  topBarActionsRow: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 6,
+    justifyContent: 'flex-end',
+    gap: 8,
   },
   filtrosBtn: {
     flexDirection: 'row',

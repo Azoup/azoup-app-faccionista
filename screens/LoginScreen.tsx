@@ -4,6 +4,7 @@ import { isSupabaseConfigured, supabase, supabaseConfigMessage } from '../lib/su
 import { useEffect, useState } from 'react';
 import {
   ActivityIndicator,
+  Image,
   KeyboardAvoidingView,
   Modal,
   Platform,
@@ -139,6 +140,12 @@ export function LoginScreen({ onSignedIn }: Props) {
       >
         <View style={styles.inner}>
           <View style={styles.card}>
+            <Image
+              source={require('../logo.png')}
+              style={styles.logo}
+              resizeMode="contain"
+              accessibilityLabel="App Faccionista"
+            />
             <Text style={[styles.brand, { color: theme.primary }]}>App Faccionista</Text>
 
             <TextInput
@@ -327,10 +334,16 @@ const styles = StyleSheet.create({
     maxWidth: FORM_MAX_WIDTH,
     alignSelf: 'center',
   },
+  logo: {
+    width: 240,
+    height: 136,
+    alignSelf: 'center',
+    marginBottom: 16,
+  },
   brand: {
-    fontSize: 28,
+    fontSize: 22,
     fontWeight: '800',
-    marginBottom: 28,
+    marginBottom: 24,
     textAlign: 'center',
   },
   input: {
