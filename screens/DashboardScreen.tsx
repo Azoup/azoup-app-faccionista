@@ -192,17 +192,7 @@ export function DashboardScreen({ session, onExit }: Props) {
   return (
     <SafeAreaView style={[styles.safe, { backgroundColor: theme.background }]} edges={['top']}>
       <View style={[styles.topBar, { borderBottomColor: theme.border }]}>
-        <View style={{ flex: 1 }}>
-          <Text style={[styles.nome, { color: theme.text }]} numberOfLines={1}>
-            {session.nome}
-          </Text>
-          <Text style={[styles.subNome, { color: theme.textMuted }]} numberOfLines={1}>
-            {session.email}
-            {session.vinculosCount && session.vinculosCount > 1
-              ? ` · ${session.vinculosCount} vínculos`
-              : ''}
-          </Text>
-        </View>
+        <View style={styles.topBarSpacer} />
         <View style={styles.topActions}>
           <ThemeToggleButton theme={theme} isDark={isDark} onToggle={toggleTheme} />
           <Pressable onPress={() => setFiltersOpen(true)} style={styles.filtrosBtn}>
@@ -309,8 +299,7 @@ const styles = StyleSheet.create({
     borderBottomWidth: 1,
     gap: 8,
   },
-  nome: { fontSize: 18, fontWeight: '700' },
-  subNome: { fontSize: 12, marginTop: 2 },
+  topBarSpacer: { flex: 1 },
   topActions: {
     flexDirection: 'row',
     alignItems: 'center',
