@@ -202,26 +202,24 @@ export function DashboardScreen({ session, onExit }: Props) {
   return (
     <SafeAreaView style={[styles.safe, { backgroundColor: theme.background }]} edges={['top']}>
       <View style={[styles.topBar, { borderBottomColor: theme.border, backgroundColor: theme.surface }]}>
-        <Text style={[styles.userEmail, { color: theme.text }]} numberOfLines={2}>
+        <Text style={[styles.userEmail, { color: theme.text }]} numberOfLines={1} ellipsizeMode="tail">
           {displayEmail || '—'}
           {session.vinculosCount && session.vinculosCount > 1
             ? ` · ${session.vinculosCount} vínculos`
             : ''}
         </Text>
-        <View style={styles.topBarActionsRow}>
-          <ThemeToggleButton theme={theme} isDark={isDark} onToggle={toggleTheme} />
-          <Pressable onPress={() => setFiltersOpen(true)} style={styles.filtrosBtn}>
-            <Text style={{ color: theme.primary, fontWeight: '700' }}>Filtros</Text>
-            {activeFiltersCount > 0 ? (
-              <View style={[styles.badge, { backgroundColor: theme.primary }]}>
-                <Text style={[styles.badgeText, { color: theme.textOnPrimary }]}>{activeFiltersCount}</Text>
-              </View>
-            ) : null}
-          </Pressable>
-          <Pressable onPress={onExit} style={styles.sairBtn}>
-            <Text style={{ color: theme.primary, fontWeight: '700' }}>Sair</Text>
-          </Pressable>
-        </View>
+        <ThemeToggleButton theme={theme} isDark={isDark} onToggle={toggleTheme} />
+        <Pressable onPress={() => setFiltersOpen(true)} style={styles.filtrosBtn}>
+          <Text style={{ color: theme.primary, fontWeight: '700' }}>Filtros</Text>
+          {activeFiltersCount > 0 ? (
+            <View style={[styles.badge, { backgroundColor: theme.primary }]}>
+              <Text style={[styles.badgeText, { color: theme.textOnPrimary }]}>{activeFiltersCount}</Text>
+            </View>
+          ) : null}
+        </Pressable>
+        <Pressable onPress={onExit} style={styles.sairBtn}>
+          <Text style={{ color: theme.primary, fontWeight: '700' }}>Sair</Text>
+        </Pressable>
       </View>
 
       {err ? (
@@ -307,25 +305,27 @@ export function DashboardScreen({ session, onExit }: Props) {
 const styles = StyleSheet.create({
   safe: { flex: 1 },
   topBar: {
-    paddingHorizontal: 16,
-    paddingTop: 10,
-    paddingBottom: 12,
-    borderBottomWidth: 1,
-    gap: 10,
-  },
-  userEmail: { fontSize: 14, fontWeight: '600', lineHeight: 20 },
-  topBarActionsRow: {
     flexDirection: 'row',
     alignItems: 'center',
-    justifyContent: 'flex-end',
-    gap: 8,
+    paddingHorizontal: 12,
+    paddingVertical: 8,
+    borderBottomWidth: 1,
+    gap: 6,
+  },
+  userEmail: {
+    flex: 1,
+    flexShrink: 1,
+    minWidth: 0,
+    fontSize: 12,
+    fontWeight: '600',
   },
   filtrosBtn: {
     flexDirection: 'row',
     alignItems: 'center',
-    paddingVertical: 8,
-    paddingHorizontal: 6,
-    gap: 6,
+    paddingVertical: 4,
+    paddingHorizontal: 4,
+    gap: 4,
+    flexShrink: 0,
   },
   badge: {
     minWidth: 18,
@@ -336,7 +336,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: 4,
   },
   badgeText: { fontSize: 11, fontWeight: '800' },
-  sairBtn: { paddingVertical: 8, paddingHorizontal: 4 },
+  sairBtn: { paddingVertical: 4, paddingHorizontal: 4, flexShrink: 0 },
   bannerErr: { padding: 12, fontSize: 14 },
   scroll: { padding: 16, paddingBottom: 32 },
   filterHint: { fontSize: 13, fontWeight: '600', marginBottom: 12 },
