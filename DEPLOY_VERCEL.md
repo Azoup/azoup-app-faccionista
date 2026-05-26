@@ -41,6 +41,7 @@ O arquivo `vercel.json` na raiz do repo já define isso.
 |------|--------|
 | `EXPO_PUBLIC_SUPABASE_URL` | URL do Supabase |
 | `EXPO_PUBLIC_SUPABASE_ANON_KEY` | chave anon |
+| `EXPO_PUBLIC_BACKEND_URL` | URL do seu backend Node (ex.: `https://api.seudominio.com`) — **esqueci a senha** |
 
 Marque Production, Preview e Development.
 

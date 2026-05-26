@@ -1,6 +1,7 @@
 import { FIRST_ACCESS_DEFAULT_PASSWORD } from '../constants/firstAccess';
 import { useTheme } from '../contexts/ThemeContext';
 import {
+  backendUrlMissingMessage,
   completePasswordReset,
   getBackendUrl,
   isPasswordStrongEnough,
@@ -11,7 +12,6 @@ import { isSupabaseConfigured, supabase, supabaseConfigMessage } from '../lib/su
 import { useEffect, useState } from 'react';
 import {
   ActivityIndicator,
-  Alert,
   Image,
   KeyboardAvoidingView,
   Modal,
@@ -52,6 +52,7 @@ export function LoginScreen({ onSignedIn }: Props) {
   const [confirmNewPassword, setConfirmNewPassword] = useState('');
   const [forgotLoading, setForgotLoading] = useState(false);
   const [forgotMsg, setForgotMsg] = useState<string | null>(null);
+  const [forgotMsgSuccess, setForgotMsgSuccess] = useState(false);
 
   useEffect(() => {
     if (!isSupabaseConfigured()) {
@@ -104,11 +105,9 @@ export function LoginScreen({ onSignedIn }: Props) {
   }
 
   function openForgotPassword() {
-    if (!getBackendUrl()) {
-      Alert.alert('Configuração', 'EXPO_PUBLIC_BACKEND_URL não está definida no app.');
-      return;
-    }
-    setForgotMsg(null);
+    const hasBackend = Boolean(getBackendUrl());
+    setForgotMsg(hasBackend ? null : backendUrlMissingMessage);
+    setForgotMsgSuccess(false);
     setForgotStep('email');
     setForgotEmail(email.trim().toLowerCase());
     setResetCode('');
@@ -123,7 +122,14 @@ export function LoginScreen({ onSignedIn }: Props) {
   }
 
   async function sendForgotCode() {
+    if (!getBackendUrl()) {
+      setForgotMsgSuccess(false);
+      setForgotMsg(backendUrlMissingMessage);
+      return;
+    }
+
     setForgotMsg(null);
+    setForgotMsgSuccess(false);
     const em = forgotEmail.trim().toLowerCase();
     if (!em) {
       setForgotMsg('Informe o e-mail.');
@@ -138,10 +144,11 @@ export function LoginScreen({ onSignedIn }: Props) {
         return;
       }
       if (!result.emailCadastrado) {
-        Alert.alert('E-mail não cadastrado', result.message);
+        setForgotMsg(result.message);
         return;
       }
-      Alert.alert('Verifique seu e-mail', result.message);
+      setForgotMsg(result.message);
+      setForgotMsgSuccess(true);
       setForgotStep('reset');
     } finally {
       setForgotLoading(false);
@@ -149,7 +156,14 @@ export function LoginScreen({ onSignedIn }: Props) {
   }
 
   async function submitForgotReset() {
+    if (!getBackendUrl()) {
+      setForgotMsgSuccess(false);
+      setForgotMsg(backendUrlMissingMessage);
+      return;
+    }
+
     setForgotMsg(null);
+    setForgotMsgSuccess(false);
     const em = forgotEmail.trim().toLowerCase();
     const code = resetCode.trim();
 
@@ -309,7 +323,11 @@ export function LoginScreen({ onSignedIn }: Props) {
             )}
           </Pressable>
 
-            <Pressable onPress={openForgotPassword} style={styles.linkBtn}>
+            <Pressable
+              onPress={openForgotPassword}
+              style={styles.linkBtn}
+              accessibilityRole="button"
+            >
               <Text style={[styles.linkText, { color: theme.primary }]}>Esqueceu a senha?</Text>
             </Pressable>
             <Pressable onPress={openFirstAccess} style={[styles.linkBtn, styles.linkBtnTight]}>
@@ -508,7 +526,16 @@ export function LoginScreen({ onSignedIn }: Props) {
                   />
                 </>
               ) : null}
-              {forgotMsg ? <Text style={[styles.err, { color: theme.error }]}>{forgotMsg}</Text> : null}
+              {forgotMsg ? (
+                <Text
+                  style={[
+                    styles.err,
+                    { color: forgotMsgSuccess ? theme.success : theme.error },
+                  ]}
+                >
+                  {forgotMsg}
+                </Text>
+              ) : null}
               <View style={styles.modalActions}>
                 <Pressable
                   onPress={closeForgotPassword}
@@ -520,7 +547,7 @@ export function LoginScreen({ onSignedIn }: Props) {
                 {forgotStep === 'email' ? (
                   <Pressable
                     onPress={sendForgotCode}
-                    disabled={forgotLoading}
+                    disabled={forgotLoading || !getBackendUrl()}
                     style={[
                       styles.modalBtn,
                       { backgroundColor: theme.primary, borderColor: theme.primary },
@@ -642,6 +669,7 @@ const styles = StyleSheet.create({
     backgroundColor: 'rgba(0,0,0,0.55)',
     justifyContent: 'center',
     padding: 20,
+    ...(Platform.OS === 'web' ? { zIndex: 1000 } : {}),
   },
   modalBox: {
     borderRadius: 16,
