@@ -92,11 +92,9 @@ export function OpCard({
       <Text style={[styles.meta, { color: theme.textSecondary }]}>
         Data de envio: {formatEntregaLabel(op.data_entrega)}
       </Text>
-      {previsaoFinalizacao ? (
-        <Text style={[styles.meta, { color: theme.textSecondary }]}>
-          Previsão de finalização: {previsaoFinalizacao}
-        </Text>
-      ) : null}
+      <Text style={[styles.meta, { color: theme.textSecondary }]}>
+        Previsão de finalização: {previsaoFinalizacao ?? '—'}
+      </Text>
       {op.fase_nome ? (
         <Text style={[styles.fase, { color: theme.textMuted }]} numberOfLines={1}>
           Fase: {op.fase_nome}

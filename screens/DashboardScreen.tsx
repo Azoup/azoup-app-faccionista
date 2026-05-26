@@ -34,7 +34,9 @@ import type { SessionInfo } from '../types/session';
 
 type Props = {
   session: SessionInfo;
-  onExit: () => void;
+  onExit?: () => void;
+  /** Dentro de MainFaccionistaApp — sem barra superior própria */
+  embedded?: boolean;
 };
 
 function patchOpAfterTimerRpc(ops: OpRow[], opId: string, t: TimerAtualizarOk): OpRow[] {
@@ -50,7 +52,7 @@ function patchOpAfterTimerRpc(ops: OpRow[], opId: string, t: TimerAtualizarOk): 
   );
 }
 
-export function DashboardScreen({ session, onExit }: Props) {
+export function DashboardScreen({ session, onExit, embedded = false }: Props) {
   const { theme, isDark, toggleTheme } = useTheme();
   const [displayEmail, setDisplayEmail] = useState(session.email);
   const [ops, setOps] = useState<OpRow[]>(session.initialOps);
@@ -202,20 +204,24 @@ export function DashboardScreen({ session, onExit }: Props) {
         ? 'Nenhuma OP finalizada corresponde à busca.'
         : 'Nenhum item finalizado ainda.';
 
-  return (
-    <SafeAreaView style={[styles.safe, { backgroundColor: theme.background }]} edges={['top']}>
-      <View style={[styles.topBar, { borderBottomColor: theme.border, backgroundColor: theme.surface }]}>
-        <Text style={[styles.userEmail, { color: theme.text }]} numberOfLines={1} ellipsizeMode="tail">
-          {displayEmail || '—'}
-          {session.vinculosCount && session.vinculosCount > 1
-            ? ` · ${session.vinculosCount} vínculos`
-            : ''}
-        </Text>
-        <ThemeToggleButton theme={theme} isDark={isDark} onToggle={toggleTheme} />
-        <Pressable onPress={onExit} style={styles.sairBtn}>
-          <Text style={{ color: theme.primary, fontWeight: '700' }}>Sair</Text>
-        </Pressable>
-      </View>
+  const body = (
+    <>
+      {!embedded ? (
+        <View style={[styles.topBar, { borderBottomColor: theme.border, backgroundColor: theme.surface }]}>
+          <Text style={[styles.userEmail, { color: theme.text }]} numberOfLines={1} ellipsizeMode="tail">
+            {displayEmail || '—'}
+            {session.vinculosCount && session.vinculosCount > 1
+              ? ` · ${session.vinculosCount} vínculos`
+              : ''}
+          </Text>
+          <ThemeToggleButton theme={theme} isDark={isDark} onToggle={toggleTheme} />
+          {onExit ? (
+            <Pressable onPress={onExit} style={styles.sairBtn}>
+              <Text style={{ color: theme.primary, fontWeight: '700' }}>Sair</Text>
+            </Pressable>
+          ) : null}
+        </View>
+      ) : null}
 
       <DashboardFilterBar
         theme={theme}
@@ -302,6 +308,16 @@ export function DashboardScreen({ session, onExit }: Props) {
         produtoNome={fichaTarget?.produtoNome ?? ''}
         onClose={() => setFichaTarget(null)}
       />
+    </>
+  );
+
+  if (embedded) {
+    return <View style={[styles.safe, { backgroundColor: theme.background }]}>{body}</View>;
+  }
+
+  return (
+    <SafeAreaView style={[styles.safe, { backgroundColor: theme.background }]} edges={['top']}>
+      {body}
     </SafeAreaView>
   );
 }

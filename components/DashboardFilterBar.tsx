@@ -92,6 +92,33 @@ export function DashboardFilterBar({ theme, empresas, filters, onChange }: Props
         })}
       </ScrollView>
 
+      <ScrollView
+        horizontal
+        showsHorizontalScrollIndicator={false}
+        contentContainerStyle={styles.listaOpRow}
+      >
+        {LISTA_OP_OPCOES.map((opt) => {
+          const active = filters.listaOp === opt.id;
+          return (
+            <Pressable
+              key={opt.id}
+              onPress={() => setListaOp(opt.id)}
+              style={[styles.chip, chipStyle(active)]}
+            >
+              <Text
+                style={{
+                  color: chipTextColor(active),
+                  fontWeight: '600',
+                  fontSize: 12,
+                }}
+              >
+                {opt.label}
+              </Text>
+            </Pressable>
+          );
+        })}
+      </ScrollView>
+
       <View
         style={[
           styles.searchWrap,

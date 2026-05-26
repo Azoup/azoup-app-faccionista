@@ -154,3 +154,24 @@ export type DashboardErr = {
 };
 
 export type DashboardResponse = DashboardOk | DashboardErr;
+
+export type ResumoMesPecas = {
+  mes: string;
+  pecas: number | string;
+};
+
+export type ResumoFinanceiroOk = {
+  ok: true;
+  total_pecas_finalizadas: number | string;
+  valor_produzido: number | string;
+  valor_recebido: number | string;
+  valor_a_receber: number | string;
+  meses: ResumoMesPecas[];
+};
+
+export type ResumoFinanceiroErr = {
+  ok: false;
+  error: string;
+};
+
+export type ResumoFinanceiroResponse = ResumoFinanceiroOk | ResumoFinanceiroErr;

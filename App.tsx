@@ -1,4 +1,4 @@
-import { DashboardScreen } from './screens/DashboardScreen';
+import { MainFaccionistaApp } from './screens/MainFaccionistaApp';
 import { LoginScreen } from './screens/LoginScreen';
 import type { SessionInfo } from './types/session';
 import { isSupabaseConfigured, supabase, supabaseConfigMessage } from './lib/supabase';
@@ -160,7 +160,7 @@ function AppRoot() {
           <ActivityIndicator size="large" color={theme.primary} />
         </View>
       ) : session ? (
-        <DashboardScreen session={session} onExit={exitApp} />
+        <MainFaccionistaApp session={session} onExit={exitApp} />
       ) : (
         <LoginScreen onSignedIn={() => syncSession({ bootOverlay: false })} />
       )}
