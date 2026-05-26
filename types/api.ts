@@ -163,6 +163,7 @@ export type ResumoMesPecas = {
 export type ResumoFinanceiroOk = {
   ok: true;
   total_pecas_finalizadas: number | string;
+  total_pecas_pendentes: number | string;
   valor_produzido: number | string;
   valor_recebido: number | string;
   valor_a_receber: number | string;

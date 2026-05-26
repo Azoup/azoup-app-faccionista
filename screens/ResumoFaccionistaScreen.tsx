@@ -75,7 +75,7 @@ export function ResumoFaccionistaScreen() {
       ) : null}
 
       <Text style={[styles.intro, { color: theme.textSecondary }]}>
-        Totais das suas finalizações em todos os vínculos ativos.
+        Totais em todos os vínculos ativos. Pendentes = OPs em produção ainda não finalizadas por você.
       </Text>
 
       <View style={styles.cardsRow}>
@@ -84,6 +84,12 @@ export function ResumoFaccionistaScreen() {
           label="Peças finalizadas"
           value={formatQuantidade(data?.total_pecas_finalizadas)}
           accent="success"
+        />
+        <StatCard
+          theme={theme}
+          label="Peças pendentes"
+          value={formatQuantidade(data?.total_pecas_pendentes)}
+          hint="Em produção (OP aberta)"
         />
       </View>
 
