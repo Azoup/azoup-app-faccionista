@@ -1,6 +1,7 @@
 import { MainFaccionistaApp } from './screens/MainFaccionistaApp';
 import { LoginScreen } from './screens/LoginScreen';
 import type { SessionInfo } from './types/session';
+import { clearLocalAuthSession, isInvalidRefreshError } from './lib/authSession';
 import { isSupabaseConfigured, supabase, supabaseConfigMessage } from './lib/supabase';
 import type { DashboardOk, DashboardResponse } from './types/api';
 import { useCallback, useEffect, useState } from 'react';
@@ -15,6 +16,10 @@ async function fetchDashboardSession(): Promise<
   try {
     const { data: userData, error: userErr } = await supabase.auth.getUser();
     if (userErr) {
+      if (isInvalidRefreshError(userErr.message)) {
+        await clearLocalAuthSession();
+        return { ok: false, error: 'Sessão expirada. Faça login novamente.' };
+      }
       return { ok: false, error: userErr.message };
     }
     const email = userData.user?.email?.trim().toLowerCase() ?? '';
@@ -83,11 +88,15 @@ function AppRoot() {
     try {
       const { data: auth, error: sessErr } = await supabase.auth.getSession();
       if (sessErr) {
+        if (isInvalidRefreshError(sessErr.message)) {
+          await clearLocalAuthSession();
+        }
         setSession(null);
-        return sessErr.message;
+        return null;
       }
       const s = auth.session;
       if (!s) {
+        await clearLocalAuthSession();
         setSession(null);
         return null;
       }
@@ -125,7 +134,20 @@ function AppRoot() {
 
     const { data: subWrapper } = supabase.auth.onAuthStateChange((event, s) => {
       if (cancelled) return;
-      if (event === 'TOKEN_REFRESHED' || event === 'INITIAL_SESSION') {
+      if (event === 'INITIAL_SESSION') {
+        if (!s) {
+          void clearLocalAuthSession();
+          setSession(null);
+          setBooting(false);
+        }
+        return;
+      }
+      if (event === 'TOKEN_REFRESHED') {
+        if (!s) {
+          void clearLocalAuthSession();
+          setSession(null);
+          setBooting(false);
+        }
         return;
       }
       if (event === 'SIGNED_OUT' || !s) {

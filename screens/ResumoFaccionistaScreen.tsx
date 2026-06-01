@@ -74,10 +74,6 @@ export function ResumoFaccionistaScreen() {
         </Text>
       ) : null}
 
-      <Text style={[styles.intro, { color: theme.textSecondary }]}>
-        Totais em todos os vínculos ativos. Pendentes = OPs em produção ainda não finalizadas por você.
-      </Text>
-
       <View style={styles.cardsRow}>
         <StatCard
           theme={theme}
@@ -117,7 +113,6 @@ export function ResumoFaccionistaScreen() {
 const styles = StyleSheet.create({
   centered: { flex: 1, justifyContent: 'center', alignItems: 'center' },
   scroll: { padding: 16, paddingBottom: 32 },
-  intro: { fontSize: 13, marginBottom: 14, lineHeight: 18 },
   cardsRow: {
     flexDirection: 'row',
     flexWrap: 'wrap',
