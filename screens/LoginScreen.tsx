@@ -9,6 +9,7 @@ import {
   requestPasswordReset,
 } from '../lib/passwordResetApi';
 import { isSupabaseConfigured, supabase, supabaseConfigMessage } from '../lib/supabase';
+import { Ionicons } from '@expo/vector-icons';
 import { useEffect, useState } from 'react';
 import {
   ActivityIndicator,
@@ -34,6 +35,7 @@ export function LoginScreen({ onSignedIn }: Props) {
   const { theme } = useTheme();
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
+  const [showPassword, setShowPassword] = useState(false);
   const [loading, setLoading] = useState(false);
   const [msg, setMsg] = useState<string | null>(null);
 
@@ -276,23 +278,43 @@ export function LoginScreen({ onSignedIn }: Props) {
               },
             ]}
           />
-          <TextInput
-            value={password}
-            onChangeText={setPassword}
-            placeholder="Senha"
-            placeholderTextColor={theme.textMuted}
-            secureTextEntry
-            autoCapitalize="none"
-            autoComplete="password"
+          <View
             style={[
-              styles.input,
+              styles.passwordWrap,
               {
                 backgroundColor: theme.surfaceVariant,
-                color: theme.text,
                 borderColor: theme.border,
               },
             ]}
-          />
+          >
+            <TextInput
+              value={password}
+              onChangeText={setPassword}
+              placeholder="Senha"
+              placeholderTextColor={theme.textMuted}
+              secureTextEntry={!showPassword}
+              autoCapitalize="none"
+              autoComplete="password"
+              style={[
+                styles.passwordInput,
+                {
+                  color: theme.text,
+                },
+              ]}
+            />
+            <Pressable
+              onPress={() => setShowPassword((v) => !v)}
+              style={styles.passwordToggle}
+              accessibilityRole="button"
+              accessibilityLabel={showPassword ? 'Ocultar senha' : 'Mostrar senha'}
+            >
+              <Ionicons
+                name={showPassword ? 'eye-off-outline' : 'eye-outline'}
+                size={22}
+                color={theme.textMuted}
+              />
+            </Pressable>
+          </View>
 
           {msg ? (
             <View style={[styles.errBox, { backgroundColor: theme.surface, borderColor: theme.border }]}>
@@ -640,6 +662,26 @@ const styles = StyleSheet.create({
     paddingVertical: 14,
     fontSize: 16,
     marginBottom: 12,
+  },
+  passwordWrap: {
+    width: '100%',
+    alignSelf: 'center',
+    flexDirection: 'row',
+    alignItems: 'center',
+    borderWidth: 1,
+    borderRadius: 12,
+    marginBottom: 12,
+  },
+  passwordInput: {
+    flex: 1,
+    paddingHorizontal: 16,
+    paddingVertical: 14,
+    fontSize: 16,
+    ...(Platform.OS === 'web' ? { outlineStyle: 'none' as const } : {}),
+  },
+  passwordToggle: {
+    paddingHorizontal: 14,
+    paddingVertical: 12,
   },
   errBox: {
     width: '100%',
