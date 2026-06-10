@@ -24,13 +24,20 @@ export function quantidadePendente(
     qtdFinalizadaExterna !== undefined
       ? qtdFinalizadaExterna
       : parseQuantidade(it.quantidade_finalizada);
-  if (finInformada > 0) {
-    return Math.max(0, total - finInformada);
+
+  if (
+    qtdFinalizadaExterna === undefined &&
+    it.quantidade_pendente !== undefined &&
+    it.quantidade_pendente !== null &&
+    it.quantidade_pendente !== ''
+  ) {
+    const pendSrv = parseQuantidade(it.quantidade_pendente);
+    if (pendSrv >= 0 && pendSrv <= total + 0.0001) {
+      return Math.max(0, pendSrv);
+    }
   }
-  if (it.quantidade_pendente !== undefined && it.quantidade_pendente !== null && it.quantidade_pendente !== '') {
-    return Math.max(0, Math.min(parseQuantidade(it.quantidade_pendente), total));
-  }
-  return Math.max(0, total);
+
+  return Math.max(0, total - finInformada);
 }
 
 export function itemTemPendente(it: OpItemRow, qtdFinalizadaExterna?: number): boolean {

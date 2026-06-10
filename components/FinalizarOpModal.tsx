@@ -227,7 +227,12 @@ export function FinalizarOpModal({ theme, visible, op, onClose, onSuccess }: Pro
         behavior={Platform.OS === 'ios' ? 'padding' : undefined}
       >
         <Pressable style={styles.backdropTap} onPress={onClose} />
-        <View style={[styles.sheet, { backgroundColor: theme.surfaceElevated, borderColor: theme.border }]}>
+        <View
+          style={[
+            styles.sheet,
+            { backgroundColor: theme.surfaceElevated, borderColor: theme.border, maxHeight: '92%' },
+          ]}
+        >
           <Text style={[styles.title, { color: theme.text }]}>Finalizar OP {op.numero_op}</Text>
           <Text style={[styles.sub, { color: theme.textSecondary }]}>
             Informe a quantidade de cada variação ou finalize tudo o que estiver pendente.
@@ -245,8 +250,10 @@ export function FinalizarOpModal({ theme, visible, op, onClose, onSuccess }: Pro
           ) : (
             <ScrollView
               style={styles.list}
+              contentContainerStyle={styles.listContent}
               keyboardShouldPersistTaps="always"
               nestedScrollEnabled
+              showsVerticalScrollIndicator
             >
               {itens.map((it, idx) => {
                 const key = it._rowKey ?? itemRowKey(it, idx);
@@ -337,19 +344,20 @@ const styles = StyleSheet.create({
     backgroundColor: 'rgba(0,0,0,0.55)',
   },
   sheet: {
-    maxHeight: '92%',
     borderTopLeftRadius: 16,
     borderTopRightRadius: 16,
     borderWidth: 1,
     padding: 20,
     paddingBottom: 28,
+    flexDirection: 'column',
   },
   title: { fontSize: 20, fontWeight: '800', marginBottom: 6 },
   sub: { fontSize: 14, lineHeight: 20, marginBottom: 12 },
   loadingBox: { alignItems: 'center', paddingVertical: 24, marginBottom: 12 },
   loadingText: { marginTop: 10, fontSize: 14 },
   empty: { fontSize: 14, lineHeight: 20, marginBottom: 16 },
-  list: { maxHeight: 340, marginBottom: 12 },
+  list: { flexGrow: 0, flexShrink: 1, maxHeight: 420, marginBottom: 12 },
+  listContent: { paddingBottom: 4 },
   row: {
     borderRadius: 10,
     borderWidth: 1,
