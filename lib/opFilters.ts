@@ -78,6 +78,7 @@ function opSearchHaystack(op: OpRow): string {
     op.produto_sku ?? '',
     op.empresa_nome ?? '',
     op.observacao ?? '',
+    op.adicionais_pedido ?? '',
     op.fase_nome ?? '',
     String(op.numero_op),
   ];
@@ -92,6 +93,7 @@ function finalizadoSearchHaystack(op: OpFinalizadoRow): string {
     op.produto_nome ?? '',
     op.produto_sku ?? '',
     op.empresa_nome ?? '',
+    op.adicionais_pedido ?? '',
     String(op.numero_op),
   ];
   for (const it of op.itens ?? []) {

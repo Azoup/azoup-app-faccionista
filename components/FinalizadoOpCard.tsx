@@ -1,6 +1,7 @@
 import { formatProdutoComSku } from '../lib/formatProduto';
 import type { Theme } from '../constants/theme';
 import type { OpFinalizadoRow } from '../types/api';
+import { OpAdicionaisBlock } from './OpAdicionaisBlock';
 import { StyleSheet, Text, View } from 'react-native';
 
 function formatEntrega(isoOrText: string): string {
@@ -43,6 +44,8 @@ export function FinalizadoOpCard({ theme, op }: Props) {
       <Text style={[styles.meta, { color: theme.textMuted }]}>
         Última finalização: {formatEntrega(op.ultimo_finalizado_em)}
       </Text>
+
+      <OpAdicionaisBlock theme={theme} adicionaisPedido={op.adicionais_pedido} />
 
       <View style={[styles.varBlock, { borderColor: theme.border }]}>
         <Text style={[styles.varTitle, { color: theme.primary }]}>Itens finalizados</Text>

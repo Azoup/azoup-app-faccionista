@@ -26,6 +26,7 @@ export type OpFinalizadoRow = {
   produto_sku?: string;
   empresa_id?: string;
   empresa_nome: string;
+  adicionais_pedido?: string | null;
   ultimo_finalizado_em: string;
   itens: FinalizadoItemRow[];
 };
@@ -46,6 +47,8 @@ export type OpRow = {
   /** DATE em producao_op — previsão da fase atual (Kanban). */
   data_previsao_finalizacao?: string | null;
   observacao: string;
+  /** Snapshot multilinha dos adicionais do pedido (producao_op.adicionais_pedido). */
+  adicionais_pedido?: string | null;
   fase_nome: string;
   itens?: OpItemRow[];
   /** Cronômetro (mesmo modelo do Kanban em `producao_op`). */

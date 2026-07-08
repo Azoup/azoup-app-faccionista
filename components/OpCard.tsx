@@ -8,6 +8,7 @@ import { formatProdutoComSku } from '../lib/formatProduto';
 import { parseQuantidade, quantidadePendente } from '../lib/opQuantidades';
 import type { Theme } from '../constants/theme';
 import type { OpRow } from '../types/api';
+import { OpAdicionaisBlock } from './OpAdicionaisBlock';
 import { Ionicons } from '@expo/vector-icons';
 import { Pressable, StyleSheet, Text, View } from 'react-native';
 
@@ -105,6 +106,8 @@ export function OpCard({
           {op.observacao}
         </Text>
       ) : null}
+
+      <OpAdicionaisBlock theme={theme} adicionaisPedido={op.adicionais_pedido} />
 
       {itens.length > 0 ? (
         <View style={[styles.varBlock, { borderColor: theme.border }]}>
