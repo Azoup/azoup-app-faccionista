@@ -7,6 +7,7 @@ import { ThemeToggleButton } from '../components/ThemeToggleButton';
 import { useTheme } from '../contexts/ThemeContext';
 import { enrichOpsComPendenteCorreto } from '../lib/enrichOpsPendente';
 import { displayElapsedSeconds } from '../lib/displayOpTimer';
+import { attachAdicionaisPedido } from '../lib/loadAdicionaisPedido';
 import { loadFinalizadosFaccionista } from '../lib/loadFinalizados';
 import {
   collectEmpresas,
@@ -93,8 +94,12 @@ export function DashboardScreen({ session, onExit, embedded = false }: Props) {
       }
     }
     const opsBrutas = Array.isArray(ok.ops) ? ok.ops : [];
-    setFinalizados(fin);
-    setOps(enrichOpsComPendenteCorreto(opsBrutas, fin));
+    const [opsComAdic, finComAdic] = await Promise.all([
+      attachAdicionaisPedido(opsBrutas),
+      attachAdicionaisPedido(fin),
+    ]);
+    setFinalizados(finComAdic);
+    setOps(enrichOpsComPendenteCorreto(opsComAdic, finComAdic));
   }, []);
 
   useEffect(() => {

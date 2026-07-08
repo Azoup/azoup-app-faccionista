@@ -2,6 +2,7 @@ import { MainFaccionistaApp } from './screens/MainFaccionistaApp';
 import { LoginScreen } from './screens/LoginScreen';
 import type { SessionInfo } from './types/session';
 import { clearLocalAuthSession, isInvalidRefreshError } from './lib/authSession';
+import { attachAdicionaisPedido } from './lib/loadAdicionaisPedido';
 import { isSupabaseConfigured, supabase, supabaseConfigMessage } from './lib/supabase';
 import type { DashboardOk, DashboardResponse } from './types/api';
 import { useCallback, useEffect, useState } from 'react';
@@ -52,6 +53,7 @@ async function fetchDashboardSession(): Promise<
     if (!ok.faccionista?.id) {
       return { ok: false, error: 'Fornecedor não encontrado para este login.' };
     }
+    const initialOps = await attachAdicionaisPedido(Array.isArray(ok.ops) ? ok.ops : []);
     return {
       ok: true,
       session: {
@@ -62,7 +64,7 @@ async function fetchDashboardSession(): Promise<
             ? ok.faccionista.vinculos_count
             : undefined,
         email,
-        initialOps: Array.isArray(ok.ops) ? ok.ops : [],
+        initialOps,
       },
     };
   } catch (e) {
