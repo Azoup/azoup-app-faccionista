@@ -152,6 +152,14 @@ export type ProdutoImagemRow = {
   created_at?: string;
 };
 
+/** Origem da imagem na galeria da ficha (cadastro vs anexo do pedido). */
+export type ProdutoImagemOrigem = 'cadastro' | 'pedido';
+
+export type ProdutoImagemDisplay = ProdutoImagemRow & {
+  origem: ProdutoImagemOrigem;
+  origem_label: string;
+};
+
 export type OpPausaContext = {
   op_id: string;
   numero_op: number;

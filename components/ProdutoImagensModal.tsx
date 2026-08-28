@@ -1,6 +1,6 @@
 import type { Theme } from '../constants/theme';
-import { loadProdutoImagens } from '../lib/loadProdutoImagens';
-import type { ProdutoImagemRow } from '../types/api';
+import { loadProdutoImagensComPedido } from '../lib/loadProdutoImagens';
+import type { ProdutoImagemDisplay } from '../types/api';
 import { useEffect, useState } from 'react';
 import {
   ActivityIndicator,
@@ -20,13 +20,22 @@ type Props = {
   visible: boolean;
   produtoId: string | null;
   produtoNome: string;
+  /** OP atual — usada para buscar anexos em `venda_imagem_externa` via pedido_id */
+  opId?: string | null;
   onClose: () => void;
 };
 
-export function ProdutoImagensModal({ theme, visible, produtoId, produtoNome, onClose }: Props) {
+export function ProdutoImagensModal({
+  theme,
+  visible,
+  produtoId,
+  produtoNome,
+  opId,
+  onClose,
+}: Props) {
   const [loading, setLoading] = useState(false);
   const [err, setErr] = useState<string | null>(null);
-  const [imagens, setImagens] = useState<ProdutoImagemRow[]>([]);
+  const [imagens, setImagens] = useState<ProdutoImagemDisplay[]>([]);
 
   useEffect(() => {
     if (!visible || !produtoId) {
@@ -39,7 +48,7 @@ export function ProdutoImagensModal({ theme, visible, produtoId, produtoNome, on
     void (async () => {
       setLoading(true);
       setErr(null);
-      const r = await loadProdutoImagens(produtoId);
+      const r = await loadProdutoImagensComPedido(produtoId, opId);
       if (cancelled) return;
       if (!r.ok) {
         setErr(r.error);
@@ -54,7 +63,7 @@ export function ProdutoImagensModal({ theme, visible, produtoId, produtoNome, on
     return () => {
       cancelled = true;
     };
-  }, [visible, produtoId]);
+  }, [visible, produtoId, opId]);
 
   async function openImage(url: string) {
     try {
@@ -68,6 +77,9 @@ export function ProdutoImagensModal({ theme, visible, produtoId, produtoNome, on
       /* ignore */
     }
   }
+
+  const cadastro = imagens.filter((i) => i.origem === 'cadastro');
+  const pedido = imagens.filter((i) => i.origem === 'pedido');
 
   return (
     <Modal visible={visible} transparent animationType="slide" onRequestClose={onClose}>
@@ -95,42 +107,82 @@ export function ProdutoImagensModal({ theme, visible, produtoId, produtoNome, on
               <Text style={{ color: theme.error }}>{err}</Text>
             ) : imagens.length === 0 ? (
               <Text style={{ color: theme.textSecondary }}>
-                Nenhuma imagem cadastrada para este produto.
+                Nenhuma imagem cadastrada para este produto nem anexada no pedido.
               </Text>
             ) : (
-              <View style={styles.grid}>
-                {imagens.map((img, idx) => (
-                  <Pressable
-                    key={img.id}
-                    onPress={() => openImage(img.url_imagem)}
-                    style={({ pressed }) => [
-                      styles.tile,
-                      {
-                        backgroundColor: theme.surface,
-                        borderColor: theme.border,
-                        opacity: pressed ? 0.9 : 1,
-                      },
-                    ]}
-                  >
-                    <Image
-                      source={{ uri: img.url_imagem }}
-                      style={[styles.image, { backgroundColor: theme.surfaceVariant }]}
-                      resizeMode="cover"
-                      accessibilityLabel={`Imagem ${idx + 1} do produto`}
-                    />
-                    {img.observacao?.trim() ? (
-                      <Text style={[styles.caption, { color: theme.textSecondary }]} numberOfLines={3}>
-                        {img.observacao.trim()}
-                      </Text>
-                    ) : null}
-                  </Pressable>
-                ))}
-              </View>
+              <>
+                {cadastro.length > 0 ? (
+                  <ImageSection
+                    theme={theme}
+                    title="Cadastro do produto"
+                    imagens={cadastro}
+                    onOpen={openImage}
+                  />
+                ) : null}
+                {pedido.length > 0 ? (
+                  <ImageSection
+                    theme={theme}
+                    title="Anexos do pedido"
+                    imagens={pedido}
+                    onOpen={openImage}
+                  />
+                ) : null}
+              </>
             )}
           </ScrollView>
         </View>
       </View>
     </Modal>
+  );
+}
+
+function ImageSection({
+  theme,
+  title,
+  imagens,
+  onOpen,
+}: {
+  theme: Theme;
+  title: string;
+  imagens: ProdutoImagemDisplay[];
+  onOpen: (url: string) => void;
+}) {
+  return (
+    <View style={styles.section}>
+      <Text style={[styles.sectionTitle, { color: theme.primary }]}>{title}</Text>
+      <View style={styles.grid}>
+        {imagens.map((img, idx) => (
+          <Pressable
+            key={img.id}
+            onPress={() => onOpen(img.url_imagem)}
+            style={({ pressed }) => [
+              styles.tile,
+              {
+                backgroundColor: theme.surface,
+                borderColor: theme.border,
+                opacity: pressed ? 0.9 : 1,
+              },
+            ]}
+          >
+            <Image
+              source={{ uri: img.url_imagem }}
+              style={[styles.image, { backgroundColor: theme.surfaceVariant }]}
+              resizeMode="cover"
+              accessibilityLabel={`${title} — imagem ${idx + 1}`}
+            />
+            {img.observacao?.trim() ? (
+              <Text style={[styles.caption, { color: theme.textSecondary }]} numberOfLines={3}>
+                {img.observacao.trim()}
+              </Text>
+            ) : (
+              <Text style={[styles.caption, { color: theme.textMuted }]} numberOfLines={1}>
+                {img.origem_label}
+              </Text>
+            )}
+          </Pressable>
+        ))}
+      </View>
+    </View>
   );
 }
 
@@ -159,6 +211,14 @@ const styles = StyleSheet.create({
   closeHit: { paddingVertical: 4, paddingLeft: 12 },
   scroll: { padding: 16, paddingBottom: 28 },
   centerPad: { paddingVertical: 40, alignItems: 'center' },
+  section: { marginBottom: 20 },
+  sectionTitle: {
+    fontSize: 12,
+    fontWeight: '800',
+    textTransform: 'uppercase',
+    letterSpacing: 0.4,
+    marginBottom: 10,
+  },
   grid: {
     flexDirection: 'row',
     flexWrap: 'wrap',

@@ -3,10 +3,11 @@ import {
   combineDateAndTime,
   formatDateTimeBr,
   formatTimerHHMMSS,
+  maskDateBr,
   maskTempoHm,
   maskTempoHms,
   parseManualTempoToSeconds,
-  todayIsoDate,
+  todayBrDate,
 } from '../lib/pausaTempo';
 import {
   insertOpPausa,
@@ -57,10 +58,11 @@ export function OpPausaModal({ theme, visible, op, onClose }: Props) {
   const [observacao, setObservacao] = useState('');
 
   const resetForm = useCallback(() => {
+    const hoje = todayBrDate();
     setDuracaoHms('');
-    setInicioDate('');
+    setInicioDate(hoje);
     setInicioHora('');
-    setFimDate('');
+    setFimDate(hoje);
     setFimHora('');
     setObservacao('');
     setFormError('');
@@ -113,9 +115,9 @@ export function OpPausaModal({ theme, visible, op, onClose }: Props) {
   }, [visible, ctx, loadPausas]);
 
   useEffect(() => {
-    if (!inicioDate || !fimDate) return;
-    const ini = combineDateAndTime(inicioDate, inicioHora || '00:00');
-    const fim = combineDateAndTime(fimDate, fimHora || '00:00');
+    if (!inicioDate || !fimDate || !inicioHora || !fimHora) return;
+    const ini = combineDateAndTime(inicioDate, inicioHora);
+    const fim = combineDateAndTime(fimDate, fimHora);
     if (!ini || !fim) return;
     const secs = Math.floor((new Date(fim).getTime() - new Date(ini).getTime()) / 1000);
     if (secs > 0) setDuracaoHms(formatTimerHHMMSS(secs));
@@ -129,9 +131,9 @@ export function OpPausaModal({ theme, visible, op, onClose }: Props) {
   const resolveDuracaoSegundos = (): number => {
     const typed = parseManualTempoToSeconds(duracaoHms);
     if (typed != null && typed > 0) return typed;
-    if (inicioDate && fimDate) {
-      const ini = combineDateAndTime(inicioDate, inicioHora || '00:00');
-      const fim = combineDateAndTime(fimDate, fimHora || '00:00');
+    if (inicioDate && fimDate && inicioHora && fimHora) {
+      const ini = combineDateAndTime(inicioDate, inicioHora);
+      const fim = combineDateAndTime(fimDate, fimHora);
       if (ini && fim) {
         const secs = Math.floor((new Date(fim).getTime() - new Date(ini).getTime()) / 1000);
         if (secs > 0) return secs;
@@ -152,8 +154,9 @@ export function OpPausaModal({ theme, visible, op, onClose }: Props) {
       return;
     }
 
-    const inicioIso = inicioDate ? combineDateAndTime(inicioDate, inicioHora || '00:00') : null;
-    const fimIso = fimDate ? combineDateAndTime(fimDate, fimHora || '00:00') : null;
+    const inicioIso =
+      inicioDate && inicioHora ? combineDateAndTime(inicioDate, inicioHora) : null;
+    const fimIso = fimDate && fimHora ? combineDateAndTime(fimDate, fimHora) : null;
 
     setSaving(true);
     const res = await insertOpPausa({
@@ -329,9 +332,10 @@ export function OpPausaModal({ theme, visible, op, onClose }: Props) {
                     { color: theme.text, borderColor: theme.border, backgroundColor: theme.surfaceVariant },
                   ]}
                   value={inicioDate}
-                  onChangeText={setInicioDate}
-                  placeholder={todayIsoDate()}
+                  onChangeText={(v) => setInicioDate(maskDateBr(v))}
+                  placeholder="DD/MM/AAAA"
                   placeholderTextColor={theme.textMuted}
+                  keyboardType="number-pad"
                   maxLength={10}
                 />
                 <TextInput
@@ -360,9 +364,10 @@ export function OpPausaModal({ theme, visible, op, onClose }: Props) {
                     { color: theme.text, borderColor: theme.border, backgroundColor: theme.surfaceVariant },
                   ]}
                   value={fimDate}
-                  onChangeText={setFimDate}
-                  placeholder={todayIsoDate()}
+                  onChangeText={(v) => setFimDate(maskDateBr(v))}
+                  placeholder="DD/MM/AAAA"
                   placeholderTextColor={theme.textMuted}
+                  keyboardType="number-pad"
                   maxLength={10}
                 />
                 <TextInput

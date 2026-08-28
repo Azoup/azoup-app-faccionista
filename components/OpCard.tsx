@@ -47,7 +47,7 @@ type Props = {
   onToggleTimer: () => void;
   onRequestFinish: () => void;
   onOpenPausa?: () => void;
-  onOpenFicha?: (produtoId: string, produtoNome: string) => void;
+  onOpenFicha?: (produtoId: string, produtoNome: string, opId: string) => void;
 };
 
 export function OpCard({
@@ -157,7 +157,7 @@ export function OpCard({
 
       {canFicha ? (
         <Pressable
-          onPress={() => produtoId && onOpenFicha!(produtoId, op.produto_nome)}
+          onPress={() => produtoId && onOpenFicha!(produtoId, op.produto_nome, op.op_id)}
           style={({ pressed }) => [
             styles.btnFicha,
             { borderColor: theme.primary, backgroundColor: theme.surfaceVariant },

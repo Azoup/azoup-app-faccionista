@@ -25,10 +25,19 @@ type Props = {
   visible: boolean;
   produtoId: string | null;
   produtoNome: string;
+  /** OP da listagem — resolve pedido_id para anexos da venda */
+  opId?: string | null;
   onClose: () => void;
 };
 
-export function FichaTecnicaModal({ theme, visible, produtoId, produtoNome, onClose }: Props) {
+export function FichaTecnicaModal({
+  theme,
+  visible,
+  produtoId,
+  produtoNome,
+  opId,
+  onClose,
+}: Props) {
   const [loading, setLoading] = useState(false);
   const [payload, setPayload] = useState<FichaTecnicaResponse | null>(null);
   const [imagensOpen, setImagensOpen] = useState(false);
@@ -116,6 +125,7 @@ export function FichaTecnicaModal({ theme, visible, produtoId, produtoNome, onCl
         visible={imagensOpen}
         produtoId={produtoId}
         produtoNome={produtoNome}
+        opId={opId}
         onClose={() => setImagensOpen(false)}
       />
     </Modal>

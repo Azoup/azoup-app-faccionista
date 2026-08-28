@@ -53,10 +53,45 @@ export function parseManualTempoToSeconds(raw: string): number | null {
   return hh * 3600 + mm * 60 + ss;
 }
 
-/** Data AAAA-MM-DD + hora HH:MM[:SS] → ISO UTC. */
-export function combineDateAndTime(dateIso: string, timeHm: string): string | null {
-  const day = String(dateIso || '').trim().slice(0, 10);
-  if (!/^\d{4}-\d{2}-\d{2}$/.test(day)) return null;
+/** Máscara de digitação DD/MM/AAAA (até 8 dígitos). */
+export function maskDateBr(value: string): string {
+  const digits = String(value ?? '').replace(/\D/g, '').slice(0, 8);
+  if (!digits) return '';
+  if (digits.length <= 2) return digits;
+  if (digits.length <= 4) return `${digits.slice(0, 2)}/${digits.slice(2)}`;
+  return `${digits.slice(0, 2)}/${digits.slice(2, 4)}/${digits.slice(4)}`;
+}
+
+/** Converte DD/MM/AAAA ou AAAA-MM-DD → AAAA-MM-DD. */
+export function toIsoDate(raw: string): string | null {
+  const t = String(raw || '').trim();
+  if (!t) return null;
+  if (/^\d{4}-\d{2}-\d{2}$/.test(t)) return t;
+  const m = t.match(/^(\d{1,2})\/(\d{1,2})\/(\d{4})$/);
+  if (!m) return null;
+  const dd = parseInt(m[1], 10);
+  const mo = parseInt(m[2], 10);
+  const yyyy = parseInt(m[3], 10);
+  if (mo < 1 || mo > 12 || dd < 1 || dd > 31) return null;
+  const day = String(dd).padStart(2, '0');
+  const month = String(mo).padStart(2, '0');
+  const iso = `${yyyy}-${month}-${day}`;
+  const check = new Date(`${iso}T12:00:00`);
+  if (
+    Number.isNaN(check.getTime()) ||
+    check.getFullYear() !== yyyy ||
+    check.getMonth() + 1 !== mo ||
+    check.getDate() !== dd
+  ) {
+    return null;
+  }
+  return iso;
+}
+
+/** Data DD/MM/AAAA ou AAAA-MM-DD + hora HH:MM[:SS] → ISO UTC. */
+export function combineDateAndTime(dateRaw: string, timeHm: string): string | null {
+  const day = toIsoDate(dateRaw);
+  if (!day) return null;
   const t = String(timeHm || '').trim();
   let hh = '00';
   let mm = '00';
@@ -82,6 +117,14 @@ export function formatDateTimeBr(value: string | null | undefined): string {
   const hh = String(d.getHours()).padStart(2, '0');
   const mm = String(d.getMinutes()).padStart(2, '0');
   return `${dd}/${mo}/${yyyy} ${hh}:${mm}`;
+}
+
+export function todayBrDate(): string {
+  const d = new Date();
+  const dd = String(d.getDate()).padStart(2, '0');
+  const m = String(d.getMonth() + 1).padStart(2, '0');
+  const y = d.getFullYear();
+  return `${dd}/${m}/${y}`;
 }
 
 export function todayIsoDate(): string {

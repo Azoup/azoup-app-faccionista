@@ -65,9 +65,11 @@ export function DashboardScreen({ session, onExit, embedded = false }: Props) {
   const [, setTick] = useState(0);
   const [finishOp, setFinishOp] = useState<OpRow | null>(null);
   const [pausaOp, setPausaOp] = useState<OpRow | null>(null);
-  const [fichaTarget, setFichaTarget] = useState<{ produtoId: string; produtoNome: string } | null>(
-    null,
-  );
+  const [fichaTarget, setFichaTarget] = useState<{
+    produtoId: string;
+    produtoNome: string;
+    opId: string;
+  } | null>(null);
 
   const fetchOps = useCallback(async () => {
     setErr(null);
@@ -273,7 +275,9 @@ export function DashboardScreen({ session, onExit, embedded = false }: Props) {
                   onToggleTimer={() => toggleTimer(op.op_id)}
                   onRequestFinish={() => setFinishOp(op)}
                   onOpenPausa={() => setPausaOp(op)}
-                  onOpenFicha={(pid, nome) => setFichaTarget({ produtoId: pid, produtoNome: nome })}
+                  onOpenFicha={(pid, nome, oid) =>
+                    setFichaTarget({ produtoId: pid, produtoNome: nome, opId: oid })
+                  }
                 />
               ))
             )}
@@ -321,6 +325,7 @@ export function DashboardScreen({ session, onExit, embedded = false }: Props) {
         visible={fichaTarget !== null}
         produtoId={fichaTarget?.produtoId ?? null}
         produtoNome={fichaTarget?.produtoNome ?? ''}
+        opId={fichaTarget?.opId ?? null}
         onClose={() => setFichaTarget(null)}
       />
     </>
