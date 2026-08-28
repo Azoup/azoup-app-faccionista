@@ -144,6 +144,41 @@ export type FichaTecnicaErr = {
 
 export type FichaTecnicaResponse = FichaTecnicaOk | FichaTecnicaErr;
 
+export type ProdutoImagemRow = {
+  id: string;
+  produto_id: string;
+  url_imagem: string;
+  observacao?: string | null;
+  created_at?: string;
+};
+
+export type OpPausaContext = {
+  op_id: string;
+  numero_op: number;
+  cliente_id_tenant: string;
+  fase_id: string | null;
+  fase_nome: string;
+  faccionista_id: string;
+  faccionista_nome: string;
+};
+
+export type OpPausaRow = {
+  id: string;
+  op_id: string;
+  numero_op?: number | null;
+  fase_id?: string | null;
+  fase_nome?: string | null;
+  usuario_nome?: string | null;
+  faccionista_id?: string | null;
+  faccionista_nome?: string | null;
+  operador_nome?: string | null;
+  duracao_segundos: number | string;
+  inicio_em?: string | null;
+  fim_em?: string | null;
+  observacao?: string | null;
+  created_at?: string | null;
+};
+
 export type DashboardOk = {
   ok: true;
   faccionista: { id: string; nome: string; vinculos_count?: number };

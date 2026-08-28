@@ -46,6 +46,7 @@ type Props = {
   running: boolean;
   onToggleTimer: () => void;
   onRequestFinish: () => void;
+  onOpenPausa?: () => void;
   onOpenFicha?: (produtoId: string, produtoNome: string) => void;
 };
 
@@ -56,6 +57,7 @@ export function OpCard({
   running,
   onToggleTimer,
   onRequestFinish,
+  onOpenPausa,
   onOpenFicha,
 }: Props) {
   const itens = Array.isArray(op.itens) ? op.itens : [];
@@ -137,6 +139,20 @@ export function OpCard({
             </View>
           ))}
         </View>
+      ) : null}
+
+      {typeof onOpenPausa === 'function' ? (
+        <Pressable
+          onPress={onOpenPausa}
+          style={({ pressed }) => [
+            styles.btnPausa,
+            { borderColor: theme.border, backgroundColor: theme.surfaceVariant },
+            pressed && styles.pressed,
+          ]}
+        >
+          <Ionicons name="time-outline" size={16} color={theme.textSecondary} />
+          <Text style={{ color: theme.textSecondary, fontWeight: '600' }}>Motivo pausa</Text>
+        </Pressable>
       ) : null}
 
       {canFicha ? (
@@ -225,6 +241,17 @@ const styles = StyleSheet.create({
   },
   varMain: { fontSize: 14, lineHeight: 20 },
   varParte: { fontSize: 12, marginTop: 4 },
+  btnPausa: {
+    marginTop: 12,
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+    alignSelf: 'flex-start',
+    paddingVertical: 8,
+    paddingHorizontal: 12,
+    borderRadius: 8,
+    borderWidth: 1,
+  },
   btnFicha: {
     marginTop: 12,
     alignSelf: 'flex-start',

@@ -3,6 +3,7 @@ import { FichaTecnicaModal } from '../components/FichaTecnicaModal';
 import { FinalizadoOpCard } from '../components/FinalizadoOpCard';
 import { FinalizarOpModal } from '../components/FinalizarOpModal';
 import { OpCard } from '../components/OpCard';
+import { OpPausaModal } from '../components/OpPausaModal';
 import { ThemeToggleButton } from '../components/ThemeToggleButton';
 import { useTheme } from '../contexts/ThemeContext';
 import { enrichOpsComPendenteCorreto } from '../lib/enrichOpsPendente';
@@ -63,6 +64,7 @@ export function DashboardScreen({ session, onExit, embedded = false }: Props) {
   const [err, setErr] = useState<string | null>(null);
   const [, setTick] = useState(0);
   const [finishOp, setFinishOp] = useState<OpRow | null>(null);
+  const [pausaOp, setPausaOp] = useState<OpRow | null>(null);
   const [fichaTarget, setFichaTarget] = useState<{ produtoId: string; produtoNome: string } | null>(
     null,
   );
@@ -270,6 +272,7 @@ export function DashboardScreen({ session, onExit, embedded = false }: Props) {
                   running={isOpTimerRunning(op)}
                   onToggleTimer={() => toggleTimer(op.op_id)}
                   onRequestFinish={() => setFinishOp(op)}
+                  onOpenPausa={() => setPausaOp(op)}
                   onOpenFicha={(pid, nome) => setFichaTarget({ produtoId: pid, produtoNome: nome })}
                 />
               ))
@@ -304,6 +307,13 @@ export function DashboardScreen({ session, onExit, embedded = false }: Props) {
         op={finishOp}
         onClose={() => setFinishOp(null)}
         onSuccess={fetchOps}
+      />
+
+      <OpPausaModal
+        theme={theme}
+        visible={pausaOp !== null}
+        op={pausaOp}
+        onClose={() => setPausaOp(null)}
       />
 
       <FichaTecnicaModal

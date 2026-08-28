@@ -1,5 +1,6 @@
 import type { Theme } from '../constants/theme';
 import type { FichaPayload, FichaTecnicaResponse } from '../types/api';
+import { ProdutoImagensModal } from './ProdutoImagensModal';
 import { supabase } from '../lib/supabase';
 import { useEffect, useState } from 'react';
 import {
@@ -30,6 +31,11 @@ type Props = {
 export function FichaTecnicaModal({ theme, visible, produtoId, produtoNome, onClose }: Props) {
   const [loading, setLoading] = useState(false);
   const [payload, setPayload] = useState<FichaTecnicaResponse | null>(null);
+  const [imagensOpen, setImagensOpen] = useState(false);
+
+  useEffect(() => {
+    if (!visible) setImagensOpen(false);
+  }, [visible]);
 
   useEffect(() => {
     if (!visible || !produtoId) {
@@ -72,9 +78,16 @@ export function FichaTecnicaModal({ theme, visible, produtoId, produtoNome, onCl
                 {produtoNome}
               </Text>
             </View>
-            <Pressable onPress={onClose} style={styles.closeHit}>
-              <Text style={{ color: theme.primary, fontWeight: '700', fontSize: 16 }}>Fechar</Text>
-            </Pressable>
+            <View style={styles.headActions}>
+              {produtoId ? (
+                <Pressable onPress={() => setImagensOpen(true)} style={styles.actionBtn}>
+                  <Text style={{ color: theme.primary, fontWeight: '700', fontSize: 16 }}>Imagens</Text>
+                </Pressable>
+              ) : null}
+              <Pressable onPress={onClose} style={styles.closeHit}>
+                <Text style={{ color: theme.primary, fontWeight: '700', fontSize: 16 }}>Fechar</Text>
+              </Pressable>
+            </View>
           </View>
 
           <ScrollView contentContainerStyle={styles.scroll} keyboardShouldPersistTaps="handled">
@@ -97,6 +110,14 @@ export function FichaTecnicaModal({ theme, visible, produtoId, produtoNome, onCl
           </ScrollView>
         </View>
       </View>
+
+      <ProdutoImagensModal
+        theme={theme}
+        visible={imagensOpen}
+        produtoId={produtoId}
+        produtoNome={produtoNome}
+        onClose={() => setImagensOpen(false)}
+      />
     </Modal>
   );
 }
@@ -272,7 +293,13 @@ const styles = StyleSheet.create({
   },
   title: { fontSize: 18, fontWeight: '800' },
   sub: { fontSize: 14, marginTop: 4 },
-  closeHit: { paddingVertical: 4, paddingLeft: 12 },
+  headActions: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+  },
+  actionBtn: { paddingVertical: 4, paddingHorizontal: 4 },
+  closeHit: { paddingVertical: 4, paddingLeft: 4 },
   scroll: { padding: 16, paddingBottom: 28 },
   centerPad: { paddingVertical: 40, alignItems: 'center' },
   block: {

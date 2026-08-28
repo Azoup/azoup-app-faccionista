@@ -59,6 +59,10 @@ export function ResumoFaccionistaScreen() {
   }
 
   const meses = Array.isArray(data?.meses) ? data.meses : [];
+  const valorProduzido = Number(data?.valor_produzido ?? 0) || 0;
+  const valorRecebido = Number(data?.valor_recebido ?? 0) || 0;
+  /** Sempre: soma das OPs produzidas − valor já recebido */
+  const valorAReceber = Math.max(0, valorProduzido - valorRecebido);
 
   return (
     <ScrollView
@@ -93,14 +97,14 @@ export function ResumoFaccionistaScreen() {
         <StatCard
           theme={theme}
           label="Valor a receber"
-          value={formatMoneyBRL(data?.valor_a_receber)}
-          hint={`Produzido: ${formatMoneyBRL(data?.valor_produzido)}`}
+          value={formatMoneyBRL(valorAReceber)}
+          hint={`${formatMoneyBRL(valorProduzido)} produzido − ${formatMoneyBRL(valorRecebido)} recebido`}
           accent="warning"
         />
         <StatCard
           theme={theme}
           label="Valor recebido"
-          value={formatMoneyBRL(data?.valor_recebido)}
+          value={formatMoneyBRL(valorRecebido)}
           accent="success"
         />
       </View>
