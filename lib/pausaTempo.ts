@@ -7,20 +7,21 @@ export function formatTimerHHMMSS(totalSeconds: number | string | null | undefin
   return [h, m, sec].map((n) => String(n).padStart(2, '0')).join(':');
 }
 
-/** Máscara de digitação HH:MM:SS (até 6 dígitos). */
+/** Máscara de digitação HH:MM:SS (cresce com os dígitos; sem pad à esquerda). */
 export function maskTempoHms(value: string): string {
-  const digits = String(value ?? '').replace(/\D/g, '').slice(-6);
+  const digits = String(value ?? '').replace(/\D/g, '').slice(0, 6);
   if (!digits) return '';
-  const padded = digits.padStart(6, '0');
-  return `${padded.slice(0, 2)}:${padded.slice(2, 4)}:${padded.slice(4, 6)}`;
+  if (digits.length <= 2) return digits;
+  if (digits.length <= 4) return `${digits.slice(0, 2)}:${digits.slice(2)}`;
+  return `${digits.slice(0, 2)}:${digits.slice(2, 4)}:${digits.slice(4)}`;
 }
 
-/** Máscara HH:MM para hora de início/fim. */
+/** Máscara HH:MM (cresce com os dígitos; sem pad à esquerda). */
 export function maskTempoHm(value: string): string {
-  const digits = String(value ?? '').replace(/\D/g, '').slice(-4);
+  const digits = String(value ?? '').replace(/\D/g, '').slice(0, 4);
   if (!digits) return '';
-  const padded = digits.padStart(4, '0');
-  return `${padded.slice(0, 2)}:${padded.slice(2, 4)}`;
+  if (digits.length <= 2) return digits;
+  return `${digits.slice(0, 2)}:${digits.slice(2)}`;
 }
 
 export function parseManualTempoToSeconds(raw: string): number | null {
