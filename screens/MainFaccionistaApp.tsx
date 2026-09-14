@@ -71,7 +71,7 @@ export function MainFaccionistaApp({ session, onExit }: Props) {
         {tab === 'ops' ? (
           <DashboardScreen session={session} embedded />
         ) : (
-          <ResumoFaccionistaScreen />
+          <ResumoFaccionistaScreen faccionistaId={session.faccionistaId} />
         )}
       </View>
     </View>

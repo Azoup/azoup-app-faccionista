@@ -3,6 +3,7 @@ import { StatCard } from '../components/StatCard';
 import { useTheme } from '../contexts/ThemeContext';
 import { formatMoneyBRL, formatQuantidade } from '../lib/formatMoney';
 import { loadResumoFaccionista } from '../lib/loadResumoFaccionista';
+import { loadValoresResumo } from '../lib/loadValoresResumo';
 import type { ResumoFinanceiroOk } from '../types/api';
 import { useCallback, useEffect, useState } from 'react';
 import {
@@ -14,23 +15,41 @@ import {
   View,
 } from 'react-native';
 
-export function ResumoFaccionistaScreen() {
+type Props = {
+  faccionistaId?: string | null;
+};
+
+export function ResumoFaccionistaScreen({ faccionistaId }: Props) {
   const { theme } = useTheme();
   const [data, setData] = useState<ResumoFinanceiroOk | null>(null);
+  const [valorProduzido, setValorProduzido] = useState(0);
+  const [valorRecebido, setValorRecebido] = useState(0);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const [err, setErr] = useState<string | null>(null);
 
   const fetchResumo = useCallback(async () => {
     setErr(null);
-    const r = await loadResumoFaccionista();
+    const [r, valores] = await Promise.all([
+      loadResumoFaccionista(),
+      loadValoresResumo(faccionistaId),
+    ]);
     if (!r.ok) {
       setErr(r.error);
       setData(null);
       return;
     }
     setData(r.data);
-  }, []);
+    if (valores.ok) {
+      setValorProduzido(valores.data.valorProduzido);
+      setValorRecebido(valores.data.valorRecebido);
+      return;
+    }
+    const produzido = Number(r.data.valor_produzido ?? 0) || 0;
+    const recebido = Number(r.data.valor_recebido ?? 0) || 0;
+    setValorProduzido(produzido);
+    setValorRecebido(recebido);
+  }, [faccionistaId]);
 
   useEffect(() => {
     let cancelled = false;
@@ -59,10 +78,7 @@ export function ResumoFaccionistaScreen() {
   }
 
   const meses = Array.isArray(data?.meses) ? data.meses : [];
-  const valorProduzido = Number(data?.valor_produzido ?? 0) || 0;
-  const valorRecebido = Number(data?.valor_recebido ?? 0) || 0;
-  /** Sempre: soma das OPs produzidas − valor já recebido */
-  const valorAReceber = Math.max(0, valorProduzido - valorRecebido);
+  const valorAReceber = Math.max(0, Math.round((valorProduzido - valorRecebido) * 100) / 100);
 
   return (
     <ScrollView
@@ -96,16 +112,25 @@ export function ResumoFaccionistaScreen() {
       <View style={styles.cardsRow}>
         <StatCard
           theme={theme}
-          label="Valor a receber"
-          value={formatMoneyBRL(valorAReceber)}
-          hint={`${formatMoneyBRL(valorProduzido)} produzido − ${formatMoneyBRL(valorRecebido)} recebido`}
-          accent="warning"
+          label="Valor produzido"
+          value={formatMoneyBRL(valorProduzido)}
+          hint="Peças finalizadas × mão de obra"
         />
         <StatCard
           theme={theme}
           label="Valor recebido"
           value={formatMoneyBRL(valorRecebido)}
           accent="success"
+        />
+      </View>
+
+      <View style={styles.cardsRow}>
+        <StatCard
+          theme={theme}
+          label="Valor a receber"
+          value={formatMoneyBRL(valorAReceber)}
+          hint={`${formatMoneyBRL(valorProduzido)} produzido − ${formatMoneyBRL(valorRecebido)} recebido`}
+          accent="warning"
         />
       </View>
 
