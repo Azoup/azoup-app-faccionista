@@ -3,6 +3,7 @@ import { FichaTecnicaModal } from '../components/FichaTecnicaModal';
 import { FinalizadoOpCard } from '../components/FinalizadoOpCard';
 import { FinalizarOpModal } from '../components/FinalizarOpModal';
 import { OpCard } from '../components/OpCard';
+import { OpConsumoModal } from '../components/OpConsumoModal';
 import { OpPausaModal } from '../components/OpPausaModal';
 import { ThemeToggleButton } from '../components/ThemeToggleButton';
 import { useTheme } from '../contexts/ThemeContext';
@@ -20,6 +21,7 @@ import {
   mostrarOpsPendentes,
   type OpFilters,
 } from '../lib/opFilters';
+import type { ConsumoTipo } from '../lib/opConsumoApi';
 import type {
   DashboardOk,
   DashboardResponse,
@@ -65,6 +67,7 @@ export function DashboardScreen({ session, onExit, embedded = false }: Props) {
   const [, setTick] = useState(0);
   const [finishOp, setFinishOp] = useState<OpRow | null>(null);
   const [pausaOp, setPausaOp] = useState<OpRow | null>(null);
+  const [consumoOp, setConsumoOp] = useState<{ op: OpRow; tipo: ConsumoTipo } | null>(null);
   const [fichaTarget, setFichaTarget] = useState<{
     produtoId: string;
     produtoNome: string;
@@ -275,6 +278,7 @@ export function DashboardScreen({ session, onExit, embedded = false }: Props) {
                   onToggleTimer={() => toggleTimer(op.op_id)}
                   onRequestFinish={() => setFinishOp(op)}
                   onOpenPausa={() => setPausaOp(op)}
+                  onOpenConsumo={(tipo) => setConsumoOp({ op, tipo })}
                   onOpenFicha={(pid, nome, oid) =>
                     setFichaTarget({ produtoId: pid, produtoNome: nome, opId: oid })
                   }
@@ -318,6 +322,14 @@ export function DashboardScreen({ session, onExit, embedded = false }: Props) {
         visible={pausaOp !== null}
         op={pausaOp}
         onClose={() => setPausaOp(null)}
+      />
+
+      <OpConsumoModal
+        theme={theme}
+        visible={consumoOp !== null}
+        op={consumoOp?.op ?? null}
+        tipo={consumoOp?.tipo ?? 'tecido'}
+        onClose={() => setConsumoOp(null)}
       />
 
       <FichaTecnicaModal

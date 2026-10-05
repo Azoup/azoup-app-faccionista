@@ -47,6 +47,7 @@ type Props = {
   onToggleTimer: () => void;
   onRequestFinish: () => void;
   onOpenPausa?: () => void;
+  onOpenConsumo?: (tipo: 'tecido' | 'aviamento') => void;
   onOpenFicha?: (produtoId: string, produtoNome: string, opId: string) => void;
 };
 
@@ -58,6 +59,7 @@ export function OpCard({
   onToggleTimer,
   onRequestFinish,
   onOpenPausa,
+  onOpenConsumo,
   onOpenFicha,
 }: Props) {
   const itens = Array.isArray(op.itens) ? op.itens : [];
@@ -138,6 +140,33 @@ export function OpCard({
               ) : null}
             </View>
           ))}
+        </View>
+      ) : null}
+
+      {typeof onOpenConsumo === 'function' ? (
+        <View style={styles.consumoRow}>
+          <Pressable
+            onPress={() => onOpenConsumo('tecido')}
+            style={({ pressed }) => [
+              styles.btnConsumo,
+              { borderColor: theme.border, backgroundColor: theme.surfaceVariant },
+              pressed && styles.pressed,
+            ]}
+          >
+            <Ionicons name="cut-outline" size={16} color={theme.textSecondary} />
+            <Text style={{ color: theme.textSecondary, fontWeight: '600' }}>Tecido</Text>
+          </Pressable>
+          <Pressable
+            onPress={() => onOpenConsumo('aviamento')}
+            style={({ pressed }) => [
+              styles.btnConsumo,
+              { borderColor: theme.border, backgroundColor: theme.surfaceVariant },
+              pressed && styles.pressed,
+            ]}
+          >
+            <Ionicons name="construct-outline" size={16} color={theme.textSecondary} />
+            <Text style={{ color: theme.textSecondary, fontWeight: '600' }}>Aviamento</Text>
+          </Pressable>
         </View>
       ) : null}
 
@@ -241,6 +270,16 @@ const styles = StyleSheet.create({
   },
   varMain: { fontSize: 14, lineHeight: 20 },
   varParte: { fontSize: 12, marginTop: 4 },
+  consumoRow: { flexDirection: 'row', gap: 8, marginTop: 12 },
+  btnConsumo: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+    paddingVertical: 8,
+    paddingHorizontal: 12,
+    borderRadius: 8,
+    borderWidth: 1,
+  },
   btnPausa: {
     marginTop: 12,
     flexDirection: 'row',
