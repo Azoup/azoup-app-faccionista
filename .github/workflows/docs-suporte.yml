@@ -2,9 +2,11 @@
 # Modelo e configuração: _geradores/acao/README.md no azoup-brain.
 name: docs-suporte
 
+# Uma vez por dia (22h de Brasília), juntando todos os pushes do dia num só diff — e numa só
+# conta do modelo. Para documentar na hora: aba Actions → docs-suporte → Run workflow.
 on:
-  push:
-    branches: [main]
+  schedule:
+    - cron: "17 1 * * *"
   workflow_dispatch:
 
 # Um por vez: execuções seguidas acumulam no mesmo PR, nunca em paralelo.
@@ -53,10 +55,9 @@ jobs:
           echo "pr=$aberto" >> "$GITHUB_OUTPUT"
           if [ -n "$aberto" ]; then
             git checkout -B "$BRANCH_DOCS" "origin/$BRANCH_DOCS"
-            # Traz o que entrou na main do brain. Conflito: recomeça da main
-            # (o diff desde o commit da main cobre tudo de novo).
-            if ! git rebase origin/main; then
-              git rebase --abort
+            # Traz o que entrou na main do brain. O conflito em sistema/_versao.md é resolvido
+            # sozinho; outro conflito recomeça da main (reprocessa o diff inteiro: custa mais).
+            if ! python3 _geradores/acao/rebase.py --produto "$PRODUTO"; then
               echo "::warning::Conflito ao atualizar $BRANCH_DOCS; recomeçando da main do brain."
               git checkout -B "$BRANCH_DOCS" origin/main
             fi
@@ -76,29 +77,45 @@ jobs:
           ANTHROPIC_BASE_URL: https://openrouter.ai/api
           ANTHROPIC_AUTH_TOKEN: ${{ secrets.OPENROUTER_API_KEY }}
           ANTHROPIC_API_KEY: ""
-          # Modelo: padrão Sonnet (mais barato que Opus, bom para esta tarefa).
-          # Para trocar, crie a variável DOCS_MODEL: "sonnet", "haiku", "opus" ou um slug do OpenRouter.
-          ANTHROPIC_DEFAULT_SONNET_MODEL: "~anthropic/claude-sonnet-latest"
-          ANTHROPIC_DEFAULT_HAIKU_MODEL: "~anthropic/claude-haiku-latest"
+          # Modelo: padrão Haiku (cerca de 1/3 do preço do Sonnet). Para trocar, crie a variável
+          # DOCS_MODEL: "haiku", "sonnet" ou "opus".
+          # Ids que o Claude Code reconhece. O --settings troca na saída pelo alias do OpenRouter.
+          ANTHROPIC_DEFAULT_SONNET_MODEL: "claude-sonnet-4-6"
+          ANTHROPIC_DEFAULT_HAIKU_MODEL: "claude-haiku-4-5"
           DOCS_MODEL: ${{ vars.DOCS_MODEL }}
           DOCS_MAX_USD: ${{ vars.DOCS_MAX_USD }}
           BASE: ${{ steps.prep.outputs.base }}
           HEAD: ${{ steps.prep.outputs.head }}
         run: |
           npm install -g @anthropic-ai/claude-code
+          # O alias ~anthropic/... do OpenRouter não é um id da Anthropic.
+          # Sem este mapa o Claude Code atual encerra com unrecognized_model.
+          cat > "$SAIDA/claude-settings.json" <<'EOF'
+          {
+            "modelOverrides": {
+              "claude-sonnet-4-6": "~anthropic/claude-sonnet-latest",
+              "claude-haiku-4-5": "~anthropic/claude-haiku-latest"
+            }
+          }
+          EOF
           prompt=$(sed -n '/^---$/,$p' _brain/_geradores/atualizacao.md | tail -n +2 \
             | sed -e "s#{PRODUTO}#$PRODUTO#g" -e "s#{BASE}#$BASE#g" -e "s#{HEAD}#$HEAD#g" \
                   -e "s#{BRAIN}#_brain#g" -e "s#{CONTEXTO}#$SAIDA/contexto.md#g" \
                   -e "s#{RESUMO}#$SAIDA/resumo.md#g")
+          set +e
           claude -p "$prompt" \
-            --model "${DOCS_MODEL:-sonnet}" \
+            --settings "$SAIDA/claude-settings.json" \
+            --model "${DOCS_MODEL:-haiku}" \
             --permission-mode acceptEdits \
             --allowedTools "Read" "Write" "Edit" "Glob" "Grep" \
               "Bash(git diff:*)" "Bash(git show:*)" "Bash(git log:*)" \
             --add-dir "$SAIDA" \
-            --max-budget-usd "${DOCS_MAX_USD:-5}" \
+            --max-budget-usd "${DOCS_MAX_USD:-1}" \
             --output-format json > "$SAIDA/claude.json"
-          jq -r '"custo: \(.total_cost_usd // "?") | turnos: \(.num_turns // "?") | erro: \(.is_error)"' "$SAIDA/claude.json" || true
+          code=$?
+          set -e
+          jq -r '"custo: \(.total_cost_usd // "?") | turnos: \(.num_turns // "?") | erro: \(.is_error // "?") | \(.error // .result // empty)"' "$SAIDA/claude.json" || true
+          exit "$code"
 
       - name: Conferir, versão e PR
         if: steps.prep.outputs.acao == 'atualizar' || (steps.prep.outputs.acao == 'so_versao' && steps.branch.outputs.pr != '')
