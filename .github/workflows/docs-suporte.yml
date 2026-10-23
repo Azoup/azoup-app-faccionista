@@ -1,0 +1,129 @@
+# Action de documentação de suporte do produto app-faccionista.
+# Modelo e configuração: _geradores/acao/README.md no azoup-brain.
+name: docs-suporte
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+# Um por vez: execuções seguidas acumulam no mesmo PR, nunca em paralelo.
+concurrency:
+  group: docs-suporte
+  cancel-in-progress: false
+
+permissions:
+  contents: read
+
+jobs:
+  atualizar:
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+    env:
+      PRODUTO: app-faccionista
+      BRAIN_REPO: Azoup/azoup-brain
+      BRANCH_DOCS: docs-auto/app-faccionista
+      GH_TOKEN: ${{ secrets.BRAIN_TOKEN }}
+      PYTHONDONTWRITEBYTECODE: "1"
+
+    steps:
+      - name: Pasta de trabalho
+        run: echo "SAIDA=$RUNNER_TEMP/docs" >> "$GITHUB_ENV"
+
+      - name: Código do produto (com histórico)
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: azoup-brain
+        uses: actions/checkout@v4
+        with:
+          repository: ${{ env.BRAIN_REPO }}
+          token: ${{ secrets.BRAIN_TOKEN }}
+          path: _brain
+          fetch-depth: 0
+
+      - name: Branch acumulada de documentação
+        id: branch
+        working-directory: _brain
+        run: |
+          git config user.name "azoup-docs-bot"
+          git config user.email "docs-bot@azoup.com.br"
+          aberto=$(gh pr list -R "$BRAIN_REPO" --head "$BRANCH_DOCS" --state open --json number -q '.[0].number')
+          echo "pr=$aberto" >> "$GITHUB_OUTPUT"
+          if [ -n "$aberto" ]; then
+            git checkout -B "$BRANCH_DOCS" "origin/$BRANCH_DOCS"
+            # Traz o que entrou na main do brain. Conflito: recomeça da main
+            # (o diff desde o commit da main cobre tudo de novo).
+            if ! git rebase origin/main; then
+              git rebase --abort
+              echo "::warning::Conflito ao atualizar $BRANCH_DOCS; recomeçando da main do brain."
+              git checkout -B "$BRANCH_DOCS" origin/main
+            fi
+          else
+            git checkout -B "$BRANCH_DOCS" origin/main
+          fi
+
+      - name: O que mudou
+        id: prep
+        run: |
+          python3 _brain/_geradores/acao/preparar.py \
+            --produto "$PRODUTO" --repo . --brain _brain --saida "$SAIDA"
+
+      - name: Claude Code
+        if: steps.prep.outputs.acao == 'atualizar'
+        env:
+          ANTHROPIC_BASE_URL: https://openrouter.ai/api
+          ANTHROPIC_AUTH_TOKEN: ${{ secrets.OPENROUTER_API_KEY }}
+          ANTHROPIC_API_KEY: ""
+          # Modelo: padrão Sonnet (mais barato que Opus, bom para esta tarefa).
+          # Para trocar, crie a variável DOCS_MODEL: "sonnet", "haiku", "opus" ou um slug do OpenRouter.
+          ANTHROPIC_DEFAULT_SONNET_MODEL: "~anthropic/claude-sonnet-latest"
+          ANTHROPIC_DEFAULT_HAIKU_MODEL: "~anthropic/claude-haiku-latest"
+          DOCS_MODEL: ${{ vars.DOCS_MODEL }}
+          DOCS_MAX_USD: ${{ vars.DOCS_MAX_USD }}
+          BASE: ${{ steps.prep.outputs.base }}
+          HEAD: ${{ steps.prep.outputs.head }}
+        run: |
+          npm install -g @anthropic-ai/claude-code
+          prompt=$(sed -n '/^---$/,$p' _brain/_geradores/atualizacao.md | tail -n +2 \
+            | sed -e "s#{PRODUTO}#$PRODUTO#g" -e "s#{BASE}#$BASE#g" -e "s#{HEAD}#$HEAD#g" \
+                  -e "s#{BRAIN}#_brain#g" -e "s#{CONTEXTO}#$SAIDA/contexto.md#g" \
+                  -e "s#{RESUMO}#$SAIDA/resumo.md#g")
+          claude -p "$prompt" \
+            --model "${DOCS_MODEL:-sonnet}" \
+            --permission-mode acceptEdits \
+            --allowedTools "Read" "Write" "Edit" "Glob" "Grep" \
+              "Bash(git diff:*)" "Bash(git show:*)" "Bash(git log:*)" \
+            --add-dir "$SAIDA" \
+            --max-budget-usd "${DOCS_MAX_USD:-5}" \
+            --output-format json > "$SAIDA/claude.json"
+          jq -r '"custo: \(.total_cost_usd // "?") | turnos: \(.num_turns // "?") | erro: \(.is_error)"' "$SAIDA/claude.json" || true
+
+      - name: Conferir, versão e PR
+        if: steps.prep.outputs.acao == 'atualizar' || (steps.prep.outputs.acao == 'so_versao' && steps.branch.outputs.pr != '')
+        env:
+          BASE: ${{ steps.prep.outputs.base }}
+          HEAD: ${{ steps.prep.outputs.head }}
+        run: |
+          python3 _brain/_geradores/acao/finalizar.py \
+            --produto "$PRODUTO" --repo . --brain _brain --saida "$SAIDA"
+          cd _brain
+          git add -A
+          git diff --cached --quiet && { echo "Nada a commitar."; exit 0; }
+          git commit -q -m "docs($PRODUTO): $BASE..$HEAD"
+          git push -f origin "$BRANCH_DOCS"
+          titulo="Docs $PRODUTO: atualização automática (até $HEAD)"
+          if [ -n "${{ steps.branch.outputs.pr }}" ]; then
+            gh pr edit "${{ steps.branch.outputs.pr }}" -R "$BRAIN_REPO" --title "$titulo" --body-file "$SAIDA/pr-body.md"
+          else
+            gh pr create -R "$BRAIN_REPO" --base main --head "$BRANCH_DOCS" --title "$titulo" --body-file "$SAIDA/pr-body.md"
+          fi
+
+      - name: Guardar contexto para depuração
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: docs-suporte-contexto
+          path: ${{ runner.temp }}/docs
+          retention-days: 14
